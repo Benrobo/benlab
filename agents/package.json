@@ -1,0 +1,19 @@
+{
+  "name": "agents",
+  "version": "1.0.0",
+  "description": "First, unlearn this mental model",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ai": "^7.0.90",
+    "async-retry": "^1.3.3"
+  }
+}
