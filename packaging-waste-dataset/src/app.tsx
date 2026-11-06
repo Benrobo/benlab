@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ImageUp } from "lucide-react";
+import { Bot, ImageUp } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useCallback, useMemo, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { categories, goal } from "../config";
 import { ControlBar } from "./control-bar";
 import { api } from "./api";
+import { ConnectSheet } from "./connect-sheet";
 import { categoryColor } from "./categories";
 import { DropOverlay, useFileDrop } from "./file-drop";
 import { PhotoGrid } from "./photo-grid";
@@ -30,6 +31,7 @@ export function App() {
 
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
+  const [isConnectOpen, setIsConnectOpen] = useState(false);
   const [uploadSheet, setUploadSheet] = useState<{ id: number; files: File[] } | null>(null);
 
   const engineOnline = collectionQuery.isSuccess;
@@ -98,15 +100,25 @@ export function App() {
             ))}
           </nav>
 
-          <div
-            className="ml-auto flex items-center gap-2 md:ml-0"
-            title={`${formatNumber(photos.length)} of ${formatNumber(goal)}`}
-          >
-            <ProgressRing progress={photos.length / goal} />
-            <span className="text-ink-2 text-[12.5px] tabular-nums">
-              <span className="text-ink font-semibold">{formatNumber(photos.length)}</span> /{" "}
-              {formatNumber(goal)}
-            </span>
+          <div className="ml-auto flex items-center gap-3 md:ml-0">
+            <div
+              className="flex items-center gap-2"
+              title={`${formatNumber(photos.length)} of ${formatNumber(goal)}`}
+            >
+              <ProgressRing progress={photos.length / goal} />
+              <span className="text-ink-2 text-[12.5px] tabular-nums">
+                <span className="text-ink font-semibold">{formatNumber(photos.length)}</span> /{" "}
+                {formatNumber(goal)}
+              </span>
+            </div>
+            <button
+              onClick={() => setIsConnectOpen(true)}
+              aria-label="Connect an AI agent"
+              title="Connect an AI agent"
+              className="text-ink-2 hover:text-ink grid size-8 place-items-center rounded-full bg-black/[0.04] transition hover:bg-black/[0.08]"
+            >
+              <Bot className="size-4" />
+            </button>
           </div>
         </div>
       </header>
@@ -139,6 +151,7 @@ export function App() {
             onClose={() => setUploadSheet(null)}
           />
         )}
+        {isConnectOpen && <ConnectSheet key="connect" onClose={() => setIsConnectOpen(false)} />}
       </AnimatePresence>
 
       <PhotoViewer

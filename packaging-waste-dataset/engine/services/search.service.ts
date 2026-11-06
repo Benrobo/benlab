@@ -68,7 +68,9 @@ class SearchService {
 
     for (const query of queries) {
       if (signal.aborted) break;
-      lists.push(await this.searchBrave(query, signal).catch((error) => this.failed("Brave", query, error)));
+      lists.push(
+        await this.searchBrave(query, signal).catch((error) => this.failed("Brave", query, error))
+      );
       await Bun.sleep(braveDelayBetweenQueriesMs);
     }
 

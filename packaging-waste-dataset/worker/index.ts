@@ -5,6 +5,7 @@ type Env = {
   ENGINE: DurableObjectNamespace<Engine>;
   OPENROUTER_API_KEY: string;
   BRAVE_SEARCH_API_KEY: string;
+  MCP_TOKEN: string;
   R2_ACCESS_KEY_ID: string;
   R2_SECRET_ACCESS_KEY: string;
   R2_ENDPOINT: string;
@@ -21,6 +22,7 @@ export class Engine extends Container<Env> {
     this.envVars = {
       OPENROUTER_API_KEY: env.OPENROUTER_API_KEY,
       BRAVE_SEARCH_API_KEY: env.BRAVE_SEARCH_API_KEY,
+      MCP_TOKEN: env.MCP_TOKEN,
       R2_ACCESS_KEY_ID: env.R2_ACCESS_KEY_ID,
       R2_SECRET_ACCESS_KEY: env.R2_SECRET_ACCESS_KEY,
       R2_ENDPOINT: env.R2_ENDPOINT,
@@ -34,6 +36,7 @@ export default {
   async fetch(request: Request, env: Env) {
     const { pathname } = new URL(request.url);
     if (pathname.startsWith("/api/")) return getContainer(env.ENGINE).fetch(request);
+    if (pathname.startsWith("/.well-known/")) return new Response(null, { status: 404 });
     return env.ASSETS.fetch(request);
   },
 };

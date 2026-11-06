@@ -35,6 +35,7 @@ The UI runs on http://localhost:5199 and the engine on port 5200.
 | Variable               | Purpose                                      |
 | ---------------------- | -------------------------------------------- |
 | `OPENROUTER_API_KEY`   | Classification                               |
+| `MCP_TOKEN`            | Access token for the MCP server              |
 | `BRAVE_SEARCH_API_KEY` | Brave image search (optional)                |
 | `R2_ACCESS_KEY_ID`     | R2 credentials                               |
 | `R2_SECRET_ACCESS_KEY` | R2 credentials                               |
@@ -61,6 +62,22 @@ The UI is served as Worker static assets. `/api/*` goes to the engine, which run
 | `DELETE` | `/api/collection`            | Stop collecting                 |
 | `POST`   | `/api/uploads`               | Upload and classify 1–5 photos  |
 | `GET`    | `/api/download?category=all` | Zip of photos with `labels.csv` |
+| `POST`   | `/api/mcp`                   | MCP server for AI agents        |
+
+## AI agents (MCP)
+
+AI agents like Claude or ChatGPT can collect photos themselves through the MCP server at `/api/mcp`. The agent does the searching and judging with its own vision. It gets the exact prompt our classifier uses, but our classifier never checks what it adds.
+
+| Tool             | Purpose                                                           |
+| ---------------- | ----------------------------------------------------------------- |
+| `get_guidelines` | What the dataset is for, the categories and the rules             |
+| `get_progress`   | Photos saved and still needed per category                        |
+| `list_photos`    | Photos already in the dataset                                     |
+| `view_image`     | See an image by URL, base64 or photo id, and check for duplicates |
+| `add_photo`      | Add a photo with its category and a reason                        |
+| `remove_photo`   | Remove a photo that breaks the rules                              |
+
+Every request needs the `MCP_TOKEN`, sent as `Authorization: Bearer <token>` or as `?token=<token>` for apps that only take a URL. The robot button in the UI shows how to connect Claude, ChatGPT, Claude Code and other MCP clients.
 
 ## Structure
 
@@ -68,6 +85,7 @@ The UI is served as Worker static assets. `/api/*` goes to the engine, which run
 config.ts                 categories, goal, upload limits
 engine/
   server.ts               routes
+  mcp.ts                  MCP server and tools for AI agents
   jobs/                   background jobs, one per category
   services/               collector, upload, dataset, search, image, review
   services/ai/            classifier and models

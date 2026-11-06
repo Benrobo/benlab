@@ -40,13 +40,17 @@ class ImageService {
   async describe(image: Buffer) {
     const [{ width = 0, height = 0 }, preview, visualHash] = await Promise.all([
       sharp(image).metadata(),
-      sharp(image)
-        .resize(previewSize, previewSize, { fit: "inside", withoutEnlargement: true })
-        .jpeg({ quality: 80 })
-        .toBuffer(),
+      this.resize(image, previewSize),
       this.computeVisualHash(image),
     ]);
     return { width, height, preview, visualHash };
+  }
+
+  resize(image: Buffer, size: number) {
+    return sharp(image)
+      .resize(size, size, { fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 80 })
+      .toBuffer();
   }
 
   looksLikeAny(visualHash: string, otherHashes: string[]) {
