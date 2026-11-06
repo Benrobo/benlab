@@ -104,9 +104,9 @@ export function App() {
               onClick={() => setIsCategorySheetOpen(true)}
               aria-label="Add a category"
               title="Add a category"
-              className="text-ink-2 hover:text-ink grid size-7 shrink-0 place-items-center rounded-full transition hover:bg-white"
+              className="bg-ink ml-1 grid size-7 shrink-0 place-items-center rounded-full text-white shadow-[0_1px_3px_rgba(0,0,0,0.15)] transition hover:bg-black"
             >
-              <Plus className="size-3.5" />
+              <Plus className="size-3.5" strokeWidth={2.5} />
             </button>
           </nav>
 
