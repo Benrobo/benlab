@@ -6,7 +6,7 @@ import { Sheet, SheetButton } from "./sheet";
 const serverName = "packaging-waste-dataset";
 const tokenStorageKey = "mcp-token";
 const examplePrompt =
-  "Find 10 casual photos of empty pure water sachets lying around in Nigeria and add the ones that fit to the packaging waste dataset.";
+  "Check which categories in the packaging waste dataset still need photos, then find casual photos taken in Nigeria for each of them and add the ones that follow the guidelines.";
 
 type App = {
   id: string;
