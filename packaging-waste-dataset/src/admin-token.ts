@@ -7,7 +7,10 @@ const listeners = new Set<() => void>();
 
 const notify = () => listeners.forEach((listener) => listener());
 
-export const forgetAdminToken = () => localStorage.removeItem(storageKey);
+export function forgetAdminToken() {
+  localStorage.removeItem(storageKey);
+  notify();
+}
 
 export function getAdminToken(): Promise<string | null> {
   const saved = localStorage.getItem(storageKey);
@@ -25,12 +28,15 @@ export function answerAdminToken(token: string | null) {
   notify();
 }
 
-export function useIsAskingForAdminToken() {
-  return useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    () => answer !== null
-  );
-}
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+};
+
+export const useIsAskingForAdminToken = () =>
+  useSyncExternalStore(subscribe, () => answer !== null);
+
+export const useHasAdminToken = () =>
+  useSyncExternalStore(subscribe, () => Boolean(localStorage.getItem(storageKey)));
