@@ -2,10 +2,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CircleCheck, Download, ImageUp, Play, ScanSearch, Square } from "lucide-react";
 import type { ReactNode } from "react";
 import toast from "react-hot-toast";
-import { categories, perCategory } from "../config";
+import { perCategory } from "../config";
 import type { CollectionStatus } from "../engine/types/dataset.types";
 import { api } from "./api";
-import { categoryColor } from "./categories";
+import { useCategories } from "./categories";
 
 const formatNumber = new Intl.NumberFormat("en").format;
 
@@ -24,6 +24,7 @@ export function ControlBar({
   canDownload,
   onUploadClick,
 }: ControlBarProps) {
+  const { categories, categoryColor } = useCategories();
   const queryClient = useQueryClient();
   const engineOnline = Boolean(collection);
   const isCollecting = collection?.running ?? false;
@@ -33,7 +34,7 @@ export function ControlBar({
   const toggleCollecting = useMutation({
     mutationFn: () => (isCollecting ? api.stopCollecting() : api.startCollecting()),
     onSuccess: (status) => queryClient.setQueryData(["collection"], status),
-    onError: () => toast.error("The engine didn't respond"),
+    onError: (error) => toast.error(error.message),
   });
 
   return (

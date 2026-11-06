@@ -1,4 +1,4 @@
-import { categories } from "../../config";
+import { categoryService } from "./category.service";
 import { categoryJobs, collectCategoryJob } from "../jobs/collect-category.job";
 import type { CollectionStatus } from "../types/dataset.types";
 import { createLogger } from "../lib/logger";
@@ -8,7 +8,7 @@ const logger = createLogger("collection");
 class CollectionService {
   start() {
     logger.info("Starting every category");
-    for (const { id } of categories) {
+    for (const id of categoryService.ids()) {
       if (collectCategoryJob.isRunning(id)) continue;
       categoryJobs.set(id, { categoryId: id, state: "queued", checked: 0, added: 0 });
       collectCategoryJob.trigger({ categoryId: id });
@@ -21,7 +21,17 @@ class CollectionService {
   }
 
   status(): CollectionStatus {
-    const jobs = [...categoryJobs.values()];
+    const jobs = categoryService
+      .ids()
+      .map(
+        (categoryId) =>
+          categoryJobs.get(categoryId) ?? {
+            categoryId,
+            state: "idle" as const,
+            checked: 0,
+            added: 0,
+          }
+      );
     return { running: jobs.some(({ state }) => state === "queued" || state === "running"), jobs };
   }
 }

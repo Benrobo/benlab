@@ -1,9 +1,34 @@
-import { categories } from "../config";
+import { useQuery } from "@tanstack/react-query";
+import { perCategory } from "../config";
+import { api } from "./api";
 
-const categoryColors = ["#3b82f6", "#f97316", "#14b8a6", "#eab308", "#ec4899"];
+const categoryColors = [
+  "#3b82f6",
+  "#f97316",
+  "#14b8a6",
+  "#eab308",
+  "#ec4899",
+  "#8b5cf6",
+  "#22c55e",
+  "#ef4444",
+  "#06b6d4",
+  "#a16207",
+];
 
-export const categoryLabel = (id: string) =>
-  categories.find((category) => category.id === id)?.label ?? id;
+export function useCategories() {
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: api.getCategories,
+    refetchInterval: 30_000,
+  });
 
-export const categoryColor = (id: string) =>
-  categoryColors[categories.findIndex((category) => category.id === id)] ?? "#a3a29d";
+  const categoryLabel = (id: string) =>
+    categories.find((category) => category.id === id)?.label ?? id;
+
+  const categoryColor = (id: string) => {
+    const index = categories.findIndex((category) => category.id === id);
+    return index < 0 ? "#a3a29d" : categoryColors[index % categoryColors.length]!;
+  };
+
+  return { categories, categoryLabel, categoryColor, goal: perCategory * categories.length };
+}

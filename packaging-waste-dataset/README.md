@@ -17,7 +17,8 @@ Live at https://packaging-waste-dataset.benlab.space
 - **Collection**: each category runs as its own background job (`engine/jobs`). A job searches Bing and Brave images, downloads each result and skips duplicates, then asks a vision model on OpenRouter to classify it. Accepted photos are saved to R2.
 - **Uploads**: you upload 1–5 photos (max 5 MB each) from the UI. The browser shrinks them first. Each photo goes to `tmp/` in R2 while it's classified, then it's moved to `images/<category>/` or deleted. Collection pauses while uploads are being checked.
 - **Classification**: `engine/services/ai/classifier.service.ts` returns `{ category, confidence, reason }`. Photos with a category and confidence of at least 0.7 are kept. The model is set in `engine/services/ai/models.ts`.
-- **Storage**: the R2 bucket `packaging-waste-dataset` holds `images/<category>/<id>.jpg` and `manifest.json`. The manifest is re-read every 3 seconds and saved with conditional writes, so local and production engines can share the bucket safely.
+- **Storage**: Redis holds the categories, the photo list and the daily AI check count. Images live in the R2 bucket `packaging-waste-dataset` under `images/<category>/<id>.jpg`.
+- **Categories**: the `+` button next to the tabs (or the `add_category` MCP tool) adds a category with a name, a description the classifier judges by, and search terms. The three defaults in `config.ts` are saved to Redis on first start.
 - **Review**: every photo the collector checks locally is linked into `review/<model>/<category>/<result>/` and logged in `review/log.jsonl`, for checking what the classifier accepts and rejects.
 
 ## Run locally
@@ -25,6 +26,7 @@ Live at https://packaging-waste-dataset.benlab.space
 ```sh
 bun install
 cp .env.example .env
+docker run -d -p 6379:6379 redis:8-alpine
 bun dev
 ```
 
@@ -41,14 +43,12 @@ The UI runs on http://localhost:5199 and the engine on port 5200.
 | `R2_ENDPOINT`          | `https://<account>.r2.cloudflarestorage.com` |
 | `R2_BUCKET`            | `packaging-waste-dataset`                    |
 | `R2_PUBLIC_URL`        | Public URL of the bucket                     |
+| `REDIS_URL`            | Redis, defaults to `redis://localhost:6379`  |
 
 ## Deploy
 
-```sh
-bun run deploy
-```
-
-The UI is served as Worker static assets. `/api/*` goes to the engine, which runs in a Cloudflare Container (`worker/index.ts`, `Dockerfile`). Secrets are set with `wrangler secret bulk`.
+- **Engine**: `docker-compose.yml` runs the engine and Redis on Dokploy, built from this repo.
+- **UI**: `bun run deploy` builds the UI and deploys it as a Cloudflare Worker with static assets. The Worker rate limits `/api/*` per IP and forwards it to the engine at `ENGINE_URL`.
 
 ## API
 
@@ -90,5 +90,6 @@ engine/
   services/ai/            classifier and models
   config/                 env, R2, paths
 src/                      React UI
-worker/index.ts           Cloudflare Worker and container
+worker/index.ts           Cloudflare Worker: UI, rate limits, proxy to the engine
+docker-compose.yml        engine and Redis for Dokploy
 ```

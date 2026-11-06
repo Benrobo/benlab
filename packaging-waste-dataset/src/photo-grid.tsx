@@ -2,7 +2,7 @@ import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Trash2 } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { PhotoWithUrl } from "../engine/types/dataset.types";
-import { categoryColor, categoryLabel } from "./categories";
+import { useCategories } from "./categories";
 
 const tileSize = 170;
 const gap = 8;
@@ -79,6 +79,7 @@ type PhotoTileProps = {
 };
 
 function PhotoTile({ photo, height, onOpen, onRemove }: PhotoTileProps) {
+  const { categoryColor, categoryLabel } = useCategories();
   return (
     <div
       className="group relative overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.04]"

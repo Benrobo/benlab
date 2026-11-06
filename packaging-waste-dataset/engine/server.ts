@@ -1,6 +1,7 @@
-import { categories, uploadLimit } from "../config";
+import { uploadLimit } from "../config";
 import env from "./config/env";
 import { handleMcpRequest } from "./mcp";
+import { categoryService } from "./services/category.service";
 import { collectionService } from "./services/collection.service";
 import { datasetService } from "./services/dataset.service";
 import { reviewService } from "./services/review.service";
@@ -9,10 +10,8 @@ import { createLogger } from "./lib/logger";
 
 const logger = createLogger("engine");
 
-const downloadableCategories = new Set(["all", ...categories.map(({ id }) => id)]);
-
 export async function startEngine() {
-  await Promise.all([datasetService.load(), reviewService.load()]);
+  await Promise.all([categoryService.load(), datasetService.load(), reviewService.load()]);
 
   Bun.serve({
     port: env.PORT,
@@ -22,6 +21,22 @@ export async function startEngine() {
       return Response.json({ error: "Something went wrong" }, { status: 500 });
     },
     routes: {
+      "/api/categories": {
+        GET: () => Response.json(categoryService.list()),
+        POST: async (request) => {
+          const { label = "", description = "", subjects } = await request.json();
+          if (typeof label !== "string" || typeof description !== "string" || !description.trim()) {
+            return Response.json(
+              { error: "Give the category a name and a description" },
+              { status: 400 }
+            );
+          }
+          const { category, problem } = await categoryService.add({ label, description, subjects });
+          if (problem) return Response.json({ error: problem }, { status: 400 });
+          return Response.json(category);
+        },
+      },
+
       "/api/photos": {
         GET: async () => Response.json(await datasetService.list()),
       },
@@ -29,7 +44,9 @@ export async function startEngine() {
       "/api/photos/:id": {
         DELETE: async (request) => {
           const removed = await datasetService.remove(request.params.id);
-          return Response.json({ removed }, { status: removed ? 200 : 404 });
+          if (!removed)
+            return Response.json({ error: "This photo is already gone" }, { status: 404 });
+          return Response.json({ removed });
         },
       },
 
@@ -59,12 +76,16 @@ export async function startEngine() {
         },
       },
 
-      "/api/mcp": (request) => handleMcpRequest(request),
+      "/api/mcp": {
+        POST: (request) => handleMcpRequest(request),
+        GET: () => new Response(null, { status: 405, headers: { allow: "POST" } }),
+        DELETE: () => new Response(null, { status: 405, headers: { allow: "POST" } }),
+      },
 
       "/api/download": {
         GET: async (request) => {
           const category = new URL(request.url).searchParams.get("category") ?? "all";
-          if (!downloadableCategories.has(category)) {
+          if (category !== "all" && !categoryService.find(category)) {
             return Response.json({ error: "Unknown category" }, { status: 400 });
           }
           return new Response(await datasetService.zip(category), {

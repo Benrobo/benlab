@@ -33,7 +33,7 @@ export function Sheet({ title, subtitle, onClose, canClose = true, onDrop, child
       <motion.section
         role="dialog"
         aria-label={title}
-        className="fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[28px] bg-white shadow-[0_-24px_60px_-24px_rgba(0,0,0,0.35)]"
+        className="fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[92dvh] w-full max-w-lg overflow-x-hidden overflow-y-auto rounded-t-[28px] bg-white shadow-[0_-24px_60px_-24px_rgba(0,0,0,0.35)]"
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}

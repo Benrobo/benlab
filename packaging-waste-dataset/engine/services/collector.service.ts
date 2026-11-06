@@ -32,6 +32,7 @@ class CollectorService {
 
     const worker = async () => {
       while (!signal.aborted && !datasetService.isCategoryFull(category.id) && queue.length) {
+        if (!(await classifierService.hasChecksLeft())) break;
         await uploadService.waitUntilIdle();
         await datasetService.refresh();
         if (datasetService.isCategoryFull(category.id)) break;

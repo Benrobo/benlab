@@ -1,23 +1,25 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
-import { categories, goal, perCategory, places } from "../config";
+import { perCategory, places } from "../config";
 import { classificationPrompt } from "./services/ai/classifier.service";
 import { agentService } from "./services/agent.service";
+import { categoryService } from "./services/category.service";
 import { datasetService } from "./services/dataset.service";
 
-const categoryIds = categories.map(({ id }) => id) as [string, ...string[]];
+const createGuidelines = () => {
+  const categories = categoryService.list();
+  const searchExamples = categories
+    .map(({ subjects }) => `"${subjects[0]} ${places[1]}"`)
+    .join(", ");
+  return `# Packaging waste dataset
 
-const searchExamples = categories.map(({ subjects }) => `"${subjects[0]} ${places[1]}"`).join(", ");
-
-const guidelines = `# Packaging waste dataset
-
-You are collecting photos of packaging waste in Nigeria for a data annotation dataset. The goal is ${goal} photos, ${perCategory} per category. You are the judge: find photos on the internet with your own search tools, look at each one with your own vision, and only add photos that follow every rule. Nothing checks your choices after you add them, so be strict.
+You are collecting photos of packaging waste in Nigeria for a data annotation dataset. The goal is ${perCategory} photos for each of the ${categories.length} categories. You are the judge: find photos on the internet with your own search tools, look at each one with your own vision, and only add photos that follow every rule. Nothing checks your choices after you add them, so be strict.
 
 ## How to judge a photo
 Judge every photo exactly the way our own classifier does. This is its prompt:
 
-${classificationPrompt}
+${classificationPrompt()}
 
 ## How to work
 1. Call get_progress to see which categories still need photos.
@@ -26,9 +28,12 @@ ${classificationPrompt}
 4. Call add_photo with the direct image URL (or base64 data), the category and a short reason. Add the page the image came from as pageUrl when you have it.
 5. Use list_photos and view_image with a photoId to review saved photos, and remove_photo for any that break the rules.
 
-Images must be at least 320px on the shortest side and not transparent or SVG. Duplicates and near duplicates are rejected.`;
+Images must be at least 320px on the shortest side and not transparent or SVG. Duplicates and near duplicates are rejected. If a kind of packaging waste is missing, add_category creates a new category.`;
+};
 
 function createServer() {
+  const guidelines = createGuidelines();
+  const categoryIds = categoryService.ids() as [string, ...string[]];
   const server = new McpServer(
     { name: "packaging-waste-dataset", version: "1.0.0" },
     { instructions: guidelines }
@@ -134,6 +139,29 @@ function createServer() {
       }
       const result = await agentService.addPhoto(photo);
       return { ...answer(result), isError: !result.added };
+    }
+  );
+
+  server.registerTool(
+    "add_category",
+    {
+      description:
+        "Add a new category of packaging waste. Only add one when no existing category fits.",
+      inputSchema: {
+        label: z.string().min(2).describe("Short name, for example Soft drink cans"),
+        description: z
+          .string()
+          .min(5)
+          .describe("What counts, written like the existing category descriptions"),
+        subjects: z
+          .array(z.string())
+          .optional()
+          .describe("A few web search terms for finding photos of it"),
+      },
+    },
+    async (newCategory) => {
+      const result = await categoryService.add(newCategory);
+      return { ...answer(result), isError: Boolean(result.problem) };
     }
   );
 

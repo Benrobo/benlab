@@ -1,3 +1,4 @@
+import type { Category } from "../config";
 import type { CollectionStatus, PhotoWithUrl, UploadResult } from "../engine/types/dataset.types";
 
 const uploadSize = 1280;
@@ -20,11 +21,23 @@ async function shrinkPhoto(file: File) {
 }
 
 async function readJson<T>(response: Response) {
-  if (!response.ok) throw new Error(response.statusText);
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error ?? "The engine didn't respond");
+  }
   return (await response.json()) as T;
 }
 
+export type NewCategory = { label: string; description: string; subjects: string[] };
+
 export const api = {
+  getCategories: () => fetch("/api/categories").then(readJson<Category[]>),
+  addCategory: (category: NewCategory) =>
+    fetch("/api/categories", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(category),
+    }).then(readJson<Category>),
   getPhotos: () => fetch("/api/photos").then(readJson<PhotoWithUrl[]>),
   removePhoto: (id: string) =>
     fetch(`/api/photos/${id}`, { method: "DELETE" }).then(readJson<{ removed: boolean }>),

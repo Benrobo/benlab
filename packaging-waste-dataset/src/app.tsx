@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, ImageUp } from "lucide-react";
+import { Bot, ImageUp, Plus } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useCallback, useMemo, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
-import { categories, goal } from "../config";
 import { ControlBar } from "./control-bar";
 import { api } from "./api";
+import { CategorySheet } from "./category-sheet";
 import { ConnectSheet } from "./connect-sheet";
-import { categoryColor } from "./categories";
+import { useCategories } from "./categories";
 import { DropOverlay, useFileDrop } from "./file-drop";
 import { PhotoGrid } from "./photo-grid";
 import { PhotoViewer } from "./photo-viewer";
@@ -16,6 +16,7 @@ import { UploadSheet } from "./upload-sheet";
 const formatNumber = new Intl.NumberFormat("en").format;
 
 export function App() {
+  const { categories, categoryColor, goal } = useCategories();
   const queryClient = useQueryClient();
   const photosQuery = useQuery({
     queryKey: ["photos"],
@@ -32,6 +33,7 @@ export function App() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
   const [isConnectOpen, setIsConnectOpen] = useState(false);
+  const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
   const [uploadSheet, setUploadSheet] = useState<{ id: number; files: File[] } | null>(null);
 
   const engineOnline = collectionQuery.isSuccess;
@@ -47,7 +49,7 @@ export function App() {
       queryClient.invalidateQueries({ queryKey: ["photos"] });
       toast.success("Removed");
     },
-    onError: () => toast.error("Couldn't remove it"),
+    onError: (error) => toast.error(error.message),
   });
 
   const photos = photosQuery.data ?? [];
@@ -98,6 +100,14 @@ export function App() {
                 </span>
               </button>
             ))}
+            <button
+              onClick={() => setIsCategorySheetOpen(true)}
+              aria-label="Add a category"
+              title="Add a category"
+              className="text-ink-2 hover:text-ink grid size-7 shrink-0 place-items-center rounded-full transition hover:bg-white"
+            >
+              <Plus className="size-3.5" />
+            </button>
           </nav>
 
           <div className="ml-auto flex items-center gap-3 md:ml-0">
@@ -152,6 +162,9 @@ export function App() {
           />
         )}
         {isConnectOpen && <ConnectSheet key="connect" onClose={() => setIsConnectOpen(false)} />}
+        {isCategorySheetOpen && (
+          <CategorySheet key="category" onClose={() => setIsCategorySheetOpen(false)} />
+        )}
       </AnimatePresence>
 
       <PhotoViewer
@@ -185,10 +198,11 @@ export function App() {
 }
 
 function Logo() {
+  const { categories, categoryColor } = useCategories();
   return (
     <span className="bg-ink grid size-7 place-items-center rounded-[9px]">
       <span className="flex h-3 items-end gap-[3px]">
-        {categories.map(({ id }, index) => (
+        {categories.slice(0, 3).map(({ id }, index) => (
           <span
             key={id}
             className="w-[3px] rounded-full"
