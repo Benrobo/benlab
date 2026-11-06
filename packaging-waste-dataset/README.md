@@ -61,11 +61,11 @@ The UI runs on http://localhost:5199 and the engine on port 5200.
 | `DELETE` | `/api/collection`            | Stop collecting                 |
 | `POST`   | `/api/uploads`               | Upload and classify 1–5 photos  |
 | `GET`    | `/api/download?category=all` | Zip of photos with `labels.csv` |
-| `POST`   | `/api/mcp`                   | MCP server for AI agents        |
+| `POST`   | `/mcp`                       | MCP server for AI agents        |
 
 ## AI agents (MCP)
 
-AI agents like Claude or ChatGPT can collect photos themselves through the MCP server at `/api/mcp`. The agent does the searching and judging with its own vision. It gets the exact prompt our classifier uses, but our classifier never checks what it adds.
+AI agents like Claude or ChatGPT can collect photos themselves through the MCP server at `https://packaging-waste-dataset.api.benlab.space/mcp`. The agent does the searching and judging with its own vision. It gets the exact prompt our classifier uses, but our classifier never checks what it adds.
 
 | Tool             | Purpose                                                           |
 | ---------------- | ----------------------------------------------------------------- |
@@ -76,7 +76,7 @@ AI agents like Claude or ChatGPT can collect photos themselves through the MCP s
 | `add_photo`      | Add a photo with its category and a reason                        |
 | `remove_photo`   | Remove a photo that breaks the rules                              |
 
-Connect with just the URL `https://packaging-waste-dataset.benlab.space/api/mcp`, no token needed. The robot button in the UI shows how to connect Claude, ChatGPT, Claude Code and other MCP clients.
+Connect with just that URL, no token needed. The robot button in the UI shows how to connect Claude, ChatGPT, Claude Code and other MCP clients.
 
 ## Structure
 
