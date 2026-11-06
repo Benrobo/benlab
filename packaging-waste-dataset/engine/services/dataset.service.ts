@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { downloadZip } from "client-zip";
 import { perCategory } from "../../config";
 import { cachedImagePath } from "../config/paths";
@@ -27,7 +28,7 @@ class DatasetService {
   }
 
   async refresh(maxAgeMs = refreshAfterMs) {
-    if (Date.now() - this.loadedAt < maxAgeMs) return;
+    if (dayjs().valueOf() - this.loadedAt < maxAgeMs) return;
     this.loading ??= this.readPhotos().finally(() => (this.loading = null));
     await this.loading;
   }
@@ -103,7 +104,7 @@ class DatasetService {
   private async readPhotos() {
     const saved = await redis.hgetall(photosKey);
     this.photos = Object.values(saved).map((value) => JSON.parse(value) as Photo);
-    this.loadedAt = Date.now();
+    this.loadedAt = dayjs().valueOf();
   }
 
   private async importOldManifest() {
