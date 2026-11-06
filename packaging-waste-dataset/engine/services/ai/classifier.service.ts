@@ -55,6 +55,13 @@ const checksTodayKey = () => redisKey(`ai-checks:${dayjs().format("YYYY-MM-DD")}
 
 class ClassifierService {
   private readonly openrouter = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
+  private nextTurn = Promise.resolve();
+
+  private waitForTurn(requestsPerMinute: number) {
+    const turn = this.nextTurn;
+    this.nextTurn = turn.then(() => Bun.sleep(60_000 / requestsPerMinute));
+    return turn;
+  }
 
   async hasChecksLeft() {
     return Number(await redis.get(checksTodayKey())) < aiChecksPerDay;
@@ -68,11 +75,13 @@ class ClassifierService {
   }
 
   async checkPhoto(preview: Buffer, signal?: AbortSignal) {
-    const { model, reasoningEffort } = AI_MODEL_CONFIG.imageClassification;
+    const { model, reasoningEffort, requestsPerMinute } = AI_MODEL_CONFIG.imageClassification;
     if (!(await this.useCheck())) {
       logger.warn(`Reached the daily limit of ${aiChecksPerDay} AI checks`);
       return null;
     }
+    await this.waitForTurn(requestsPerMinute);
+    if (signal?.aborted) return null;
     try {
       const { output } = await generateText({
         model: this.openrouter(model, {
@@ -85,7 +94,7 @@ class ClassifierService {
           { role: "user", content: [{ type: "file", data: preview, mediaType: "image/jpeg" }] },
         ],
         temperature: 0,
-        maxOutputTokens: 100,
+        maxOutputTokens: 300,
         maxRetries: 4,
         abortSignal: signal,
       });
