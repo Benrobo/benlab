@@ -8,7 +8,7 @@ import { Modal, ModalButton } from "./modal";
 const serverName = "packaging-waste-dataset";
 const url = `${engineUrl}/mcp`;
 const examplePrompt =
-  "Find casual photos of packaging waste taken in Nigeria for each category in the packaging waste dataset, and add the ones that follow the guidelines.";
+  "Use the packaging waste dataset tools. Read the guidelines, then work on your own like a researcher until you've added at least 30 good photos across the categories. Plan lots of different searches, dig through news sites, blogs, forums and social posts, open pages to find the real image files, check every photo yourself and only add the ones that follow all the rules. When a search comes up empty, change your approach and keep going instead of stopping. If you can run sub-agents, split the categories between them. Finish by telling me what you added and what to try next.";
 
 type Step = { title: string; text: string; visual?: Visual; copy?: string };
 

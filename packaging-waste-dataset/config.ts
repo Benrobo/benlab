@@ -23,8 +23,6 @@ export const photoRules = [
   "Judge each rule only by what is clearly visible, and don't reject a photo over doubts it doesn't show.",
 ];
 
-export const places = ["", "Nigeria", "Lagos", "Abuja", "nairaland"];
-
 export const defaultCategories: Category[] = [
   {
     id: "water-bottle",

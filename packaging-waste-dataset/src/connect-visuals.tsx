@@ -101,7 +101,7 @@ export function StepVisual({ visual }: { visual: Visual }) {
     return (
       <Window>
         <div className="flex h-full flex-col justify-end gap-2 p-3">
-          <span className="bg-ink ml-auto max-w-[85%] rounded-xl rounded-br-sm px-2.5 py-1.5 text-[10.5px] leading-snug text-white">
+          <span className="bg-ink ml-auto line-clamp-4 max-w-[85%] rounded-xl rounded-br-sm px-2.5 py-1.5 text-[10.5px] leading-snug text-white">
             {visual.prompt}
           </span>
           <span className="text-ink-2 flex w-fit items-center gap-1.5 rounded-full bg-black/[0.04] px-2 py-0.5 text-[10px]">

@@ -8,6 +8,7 @@ import { createLogger } from "../lib/logger";
 const logger = createLogger("agent");
 
 const viewSize = 768;
+const maxSourcesShown = 8;
 const downloadTimeoutMs = 20_000;
 const unusableImage =
   "Couldn't use this image. It didn't download, or it is an SVG, transparent or smaller than 320px.";
@@ -19,15 +20,29 @@ type NewPhoto = ImageSource & { category: string; reason: string };
 class AgentService {
   async progress() {
     const photos = await datasetService.list();
-    return categoryService.active().map(({ id, label, description }) => {
-      const saved = photos.filter((photo) => photo.category === id).length;
+    return categoryService.active().map(({ id, label, description, subjects }) => {
+      const saved = photos.filter((photo) => photo.category === id);
       return {
         category: id,
-        description,
         label,
-        saved,
+        description,
+        saved: saved.length,
+        searchTerms: subjects,
+        sourcesThatWorked: this.topSites(saved.map((photo) => photo.page ?? photo.url)),
       };
     });
+  }
+
+  private topSites(links: string[]) {
+    const counts = new Map<string, number>();
+    for (const link of links) {
+      const site = URL.canParse(link) ? new URL(link).hostname.replace(/^www\./, "") : null;
+      if (site) counts.set(site, (counts.get(site) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((first, second) => second[1] - first[1])
+      .slice(0, maxSourcesShown)
+      .map(([site, photos]) => ({ site, photos }));
   }
 
   async viewImage(source: ImageSource & { photoId?: string }) {
