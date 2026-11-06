@@ -17,6 +17,7 @@
     "@tanstack/react-virtual": "^3.14.26",
     "ai": "^7.0.163",
     "client-zip": "^2.5.1",
+    "dayjs": "^1.11.23",
     "lucide-react": "^1.70.0",
     "motion": "^14.9.1",
     "p-queue": "^10.0.0",

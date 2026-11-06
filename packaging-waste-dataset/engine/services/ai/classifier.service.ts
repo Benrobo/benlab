@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { APICallError, generateText, Output } from "ai";
 import { z } from "zod";
@@ -50,7 +51,7 @@ ${categoryService
 Give the photo's category only when it follows every rule below, otherwise null:
 ${rules.map((rule) => `- ${rule}`).join("\n")}`;
 
-const checksTodayKey = () => redisKey(`ai-checks:${new Date().toISOString().slice(0, 10)}`);
+const checksTodayKey = () => redisKey(`ai-checks:${dayjs().format("YYYY-MM-DD")}`);
 
 class ClassifierService {
   private readonly openrouter = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });

@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { defaultCategories, type Category } from "../../config";
 import { redis, redisKey } from "../config/redis";
 import { createLogger } from "../lib/logger";
@@ -52,7 +53,7 @@ class CategoryService {
       subjects: searchTerms.length
         ? searchTerms
         : [`empty ${label}`, `${label} litter`, `used ${label} waste`, `${label} thrown away`],
-      addedAt: Date.now(),
+      addedAt: dayjs().valueOf(),
     };
     await this.save(category);
     this.categories.push(category);
