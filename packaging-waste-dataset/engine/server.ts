@@ -33,8 +33,10 @@ export async function startEngine() {
       "/api/categories": {
         GET: () => Response.json(categoryService.list()),
         POST: async (request) => {
-          const { label = "", description = "", subjects } = await request.json();
-          if (typeof label !== "string" || typeof description !== "string" || !description.trim()) {
+          const { label = "", description = "", subjects = [] } = await request.json();
+          const isList =
+            Array.isArray(subjects) && subjects.every((item) => typeof item === "string");
+          if (typeof label !== "string" || typeof description !== "string" || !isList) {
             return Response.json(
               { error: "Give the category a name and a description" },
               { status: 400 }
@@ -48,13 +50,31 @@ export async function startEngine() {
 
       "/api/categories/:id": {
         PATCH: async (request) => {
-          if (!isAdmin(request)) return notAdmin();
-          const { archived } = await request.json();
-          if (typeof archived !== "boolean") {
-            return Response.json({ error: "Send archived as true or false" }, { status: 400 });
+          const { archived, label, description, subjects } = await request.json();
+          if (archived !== undefined) {
+            if (!isAdmin(request)) return notAdmin();
+            if (typeof archived !== "boolean") {
+              return Response.json({ error: "Send archived as true or false" }, { status: 400 });
+            }
+            const category = await categoryService.setArchived(request.params.id, archived);
+            if (!category) return Response.json({ error: "No such category" }, { status: 404 });
+            return Response.json(category);
           }
-          const category = await categoryService.setArchived(request.params.id, archived);
-          if (!category) return Response.json({ error: "No such category" }, { status: 404 });
+          const isText = (value: unknown) => value === undefined || typeof value === "string";
+          const isList =
+            Array.isArray(subjects) && subjects.every((item) => typeof item === "string");
+          if (!isText(label) || !isText(description) || (subjects !== undefined && !isList)) {
+            return Response.json(
+              { error: "Send text for the name, description and search terms" },
+              { status: 400 }
+            );
+          }
+          const { category, problem } = await categoryService.edit(request.params.id, {
+            label,
+            description,
+            subjects,
+          });
+          if (problem) return Response.json({ error: problem }, { status: 400 });
           return Response.json(category);
         },
       },
