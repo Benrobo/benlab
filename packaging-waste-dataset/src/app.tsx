@@ -3,6 +3,8 @@ import { Bot, ImageUp } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useCallback, useMemo, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
+import { AdminTokenModal } from "./admin-token-modal";
+import { useIsAskingForAdminToken } from "./admin-token";
 import { api } from "./api";
 import { CategoryModal } from "./category-modal";
 import { ConnectModal } from "./connect-modal";
@@ -31,6 +33,7 @@ export function App() {
   const selectedCategory = categories.some(({ id }) => id === chosenCategory)
     ? chosenCategory
     : "all";
+  const isAskingForAdminToken = useIsAskingForAdminToken();
   const engineOnline = photosQuery.isSuccess;
   const openUploadModal = useCallback(
     (files: File[] = []) => setUploadModal({ id: Date.now(), files }),
@@ -109,6 +112,7 @@ export function App() {
             onClose={() => setIsCategoryModalOpen(false)}
           />
         )}
+        {isAskingForAdminToken && <AdminTokenModal key="admin-token" />}
       </AnimatePresence>
 
       <PhotoViewer
