@@ -10,6 +10,12 @@ import { createLogger } from "./lib/logger";
 
 const logger = createLogger("engine");
 
+const mcpRoute = {
+  POST: (request: Request) => handleMcpRequest(request),
+  GET: () => new Response(null, { status: 405, headers: { allow: "POST" } }),
+  DELETE: () => new Response(null, { status: 405, headers: { allow: "POST" } }),
+};
+
 export async function startEngine() {
   await Promise.all([categoryService.load(), datasetService.load(), reviewService.load()]);
 
@@ -76,11 +82,8 @@ export async function startEngine() {
         },
       },
 
-      "/api/mcp": {
-        POST: (request) => handleMcpRequest(request),
-        GET: () => new Response(null, { status: 405, headers: { allow: "POST" } }),
-        DELETE: () => new Response(null, { status: 405, headers: { allow: "POST" } }),
-      },
+      "/mcp": mcpRoute,
+      "/api/mcp": mcpRoute,
 
       "/api/download": {
         GET: async (request) => {

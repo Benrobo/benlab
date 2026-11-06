@@ -1,6 +1,7 @@
 import { Check, Copy, Plug } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { engineUrl } from "../config";
 import { Sheet, SheetButton } from "./sheet";
 
 const serverName = "packaging-waste-dataset";
@@ -69,7 +70,7 @@ const apps: App[] = [
 export function ConnectSheet({ onClose }: { onClose: () => void }) {
   const [appId, setAppId] = useState(apps[0]!.id);
 
-  const url = `${location.origin}/api/mcp`;
+  const url = `${engineUrl}/mcp`;
 
   return (
     <Sheet
