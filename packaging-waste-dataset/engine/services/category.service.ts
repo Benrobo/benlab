@@ -9,29 +9,10 @@ const categoriesKey = redisKey("categories");
 
 type CategoryText = { label: string; description: string; subjects?: string[] };
 
-const limits = { label: 40, description: 200, subject: 60, subjects: 8 };
-
-const unsafeCharacters = /https?:|www\.|[<>{}`\[\]\\|]|\n|\r/i;
-
-function findProblem({ label, description, subjects = [] }: CategoryText) {
-  const texts = [label, description, ...subjects];
-  if (label.trim().length < 2 || label.length > limits.label) {
-    return `The name must be 2 to ${limits.label} characters`;
-  }
-  if (description.trim().length < 5 || description.length > limits.description) {
-    return `The description must be 5 to ${limits.description} characters`;
-  }
-  if (
-    subjects.length > limits.subjects ||
-    subjects.some((subject) => subject.length > limits.subject)
-  ) {
-    return `Use up to ${limits.subjects} search terms of up to ${limits.subject} characters`;
-  }
-  if (texts.some((text) => unsafeCharacters.test(text))) {
-    return "Links, markup and line breaks aren't allowed";
-  }
-  return null;
-}
+const findProblem = ({ label, description }: CategoryText) =>
+  label.trim().length < 2 || description.trim().length < 5
+    ? "Give the category a name and a short description"
+    : null;
 
 const cleanSubjects = (subjects: string[] = []) =>
   subjects.map((subject) => subject.trim()).filter(Boolean);

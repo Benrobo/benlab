@@ -1,5 +1,6 @@
 import { uploadLimit } from "../config";
 import env from "./config/env";
+import { isAdminToken } from "./lib/admin";
 import { handleMcpRequest } from "./mcp";
 import { categoryService } from "./services/category.service";
 import { datasetService } from "./services/dataset.service";
@@ -9,7 +10,7 @@ import { createLogger } from "./lib/logger";
 const logger = createLogger("engine");
 
 const isAdmin = (request: Request) =>
-  Boolean(env.ADMIN_TOKEN) && request.headers.get("authorization") === `Bearer ${env.ADMIN_TOKEN}`;
+  isAdminToken(request.headers.get("authorization")?.replace(/^Bearer /, ""));
 
 const notAdmin = () => Response.json({ error: "Wrong admin token" }, { status: 401 });
 
@@ -33,6 +34,7 @@ export async function startEngine() {
       "/api/categories": {
         GET: () => Response.json(categoryService.list()),
         POST: async (request) => {
+          if (!isAdmin(request)) return notAdmin();
           const { label = "", description = "", subjects = [] } = await request.json();
           const isList =
             Array.isArray(subjects) && subjects.every((item) => typeof item === "string");
@@ -50,9 +52,9 @@ export async function startEngine() {
 
       "/api/categories/:id": {
         PATCH: async (request) => {
+          if (!isAdmin(request)) return notAdmin();
           const { archived, label, description, subjects } = await request.json();
           if (archived !== undefined) {
-            if (!isAdmin(request)) return notAdmin();
             if (typeof archived !== "boolean") {
               return Response.json({ error: "Send archived as true or false" }, { status: 400 });
             }

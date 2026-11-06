@@ -46,16 +46,16 @@ export const api = {
       headers: { "content-type": "application/json", ...(await adminHeaders()) },
       body: JSON.stringify({ archived }),
     }).then(readJson<Category>),
-  editCategory: (id: string, category: NewCategory) =>
+  editCategory: async (id: string, category: NewCategory) =>
     fetch(`/api/categories/${id}`, {
       method: "PATCH",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...(await adminHeaders()) },
       body: JSON.stringify(category),
     }).then(readJson<Category>),
-  addCategory: (category: NewCategory) =>
+  addCategory: async (category: NewCategory) =>
     fetch("/api/categories", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...(await adminHeaders()) },
       body: JSON.stringify(category),
     }).then(readJson<Category>),
   getPhotos: () => fetch("/api/photos").then(readJson<PhotoWithUrl[]>),

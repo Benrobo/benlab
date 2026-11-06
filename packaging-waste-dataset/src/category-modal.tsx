@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Archive, ArchiveRestore, LoaderCircle, Pencil, Plus } from "lucide-react";
+import { Archive, ArchiveRestore, KeyRound, LoaderCircle, Pencil, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import toast from "react-hot-toast";
 import type { Category } from "../config";
+import { getAdminToken, useHasAdminToken } from "./admin-token";
 import { api } from "./api";
 import { useCategories } from "./categories";
 import { Modal, ModalButton } from "./modal";
@@ -14,6 +15,7 @@ type CategoryModalProps = { photoCounts: Map<string, number>; onClose: () => voi
 
 export function CategoryModal({ photoCounts, onClose }: CategoryModalProps) {
   const { allCategories } = useCategories();
+  const isAdmin = useHasAdminToken();
   const [view, setView] = useState<"list" | "add" | Category>("list");
   const backToList = () => setView("list");
 
@@ -27,7 +29,9 @@ export function CategoryModal({ photoCounts, onClose }: CategoryModalProps) {
       }
       subtitle={
         view === "list"
-          ? "Add new kinds of packaging waste, edit them, or archive ones you no longer collect"
+          ? isAdmin
+            ? "Add new kinds of packaging waste, edit them, or archive ones you no longer collect"
+            : "The kinds of packaging waste in the dataset"
           : "Only kinds of packaging waste, described plainly"
       }
       onClose={onClose}
@@ -43,7 +47,7 @@ export function CategoryModal({ photoCounts, onClose }: CategoryModalProps) {
               <CategoryList
                 categories={activeCategories}
                 photoCounts={photoCounts}
-                onEdit={setView}
+                onEdit={isAdmin ? setView : undefined}
               />
               {archivedCategories.length > 0 && (
                 <div className="space-y-2">
@@ -53,7 +57,7 @@ export function CategoryModal({ photoCounts, onClose }: CategoryModalProps) {
                   <CategoryList
                     categories={archivedCategories}
                     photoCounts={photoCounts}
-                    onEdit={setView}
+                    onEdit={isAdmin ? setView : undefined}
                   />
                 </div>
               )}
@@ -61,10 +65,17 @@ export function CategoryModal({ photoCounts, onClose }: CategoryModalProps) {
 
             <footer className="flex justify-end gap-2 border-t border-black/[0.05] px-5 py-3.5">
               <ModalButton onClick={onClose}>Done</ModalButton>
-              <ModalButton onClick={() => setView("add")} primary>
-                <Plus className="size-4" />
-                New category
-              </ModalButton>
+              {isAdmin ? (
+                <ModalButton onClick={() => setView("add")} primary>
+                  <Plus className="size-4" />
+                  New category
+                </ModalButton>
+              ) : (
+                <ModalButton onClick={() => getAdminToken()} primary>
+                  <KeyRound className="size-4" />
+                  Enter admin token
+                </ModalButton>
+              )}
             </footer>
           </Slide>
         )}
@@ -89,7 +100,7 @@ function Slide({ direction, children }: { direction: number; children: ReactNode
 type CategoryListProps = {
   categories: Category[];
   photoCounts: Map<string, number>;
-  onEdit: (category: Category) => void;
+  onEdit?: (category: Category) => void;
 };
 
 function CategoryList({ categories, photoCounts, onEdit }: CategoryListProps) {
@@ -112,15 +123,17 @@ function CategoryList({ categories, photoCounts, onEdit }: CategoryListProps) {
           <span className="text-ink-2 shrink-0 text-[12px] tabular-nums">
             {formatNumber(photoCounts.get(category.id) ?? 0)}
           </span>
-          <button
-            onClick={() => onEdit(category)}
-            aria-label={`Edit ${category.label}`}
-            title="Edit"
-            className="text-ink-2 hover:text-ink grid size-8 shrink-0 place-items-center rounded-full bg-black/[0.04] transition hover:bg-black/[0.08]"
-          >
-            <Pencil className="size-3.5" />
-          </button>
-          <ArchiveButton category={category} />
+          {onEdit && (
+            <button
+              onClick={() => onEdit(category)}
+              aria-label={`Edit ${category.label}`}
+              title="Edit"
+              className="text-ink-2 hover:text-ink grid size-8 shrink-0 place-items-center rounded-full bg-black/[0.04] transition hover:bg-black/[0.08]"
+            >
+              <Pencil className="size-3.5" />
+            </button>
+          )}
+          {onEdit && <ArchiveButton category={category} />}
         </li>
       ))}
     </ul>
