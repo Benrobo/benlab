@@ -16,6 +16,14 @@ const bingQueriesAtOnce = 8;
 const braveDelayBetweenQueriesMs = 1100;
 
 class SearchService {
+  private nextBraveTurn = Promise.resolve();
+
+  private waitForBraveTurn() {
+    const turn = this.nextBraveTurn;
+    this.nextBraveTurn = turn.then(() => Bun.sleep(braveDelayBetweenQueriesMs));
+    return turn;
+  }
+
   private failed(engine: string, query: string, error: unknown): SearchResult[] {
     logger.warn(
       `${engine} search failed for "${query}"`,
@@ -71,7 +79,6 @@ class SearchService {
       lists.push(
         await this.searchBrave(query, signal).catch((error) => this.failed("Brave", query, error))
       );
-      await Bun.sleep(braveDelayBetweenQueriesMs);
     }
 
     return lists;
@@ -118,6 +125,7 @@ class SearchService {
       safesearch: "strict",
       search_lang: "en",
     });
+    await this.waitForBraveTurn();
     const response = await fetch(`https://api.search.brave.com/res/v1/images/search?${params}`, {
       headers: { accept: "application/json", "x-subscription-token": env.BRAVE_SEARCH_API_KEY },
       signal,
