@@ -3,6 +3,7 @@ import { downloadZip } from "client-zip";
 import { deleteFile, getFile, getPublicUrl, uploadFile } from "../config/r2";
 import { redis, redisKey } from "../config/redis";
 import type { Photo, PhotoWithUrl } from "../types/dataset.types";
+import { categoryService } from "./category.service";
 import { imageService } from "./image.service";
 import { createLogger } from "../lib/logger";
 
@@ -82,7 +83,9 @@ class DatasetService {
 
   async zip(category: string) {
     await this.refresh(0);
-    const chosen = this.photos.filter((photo) => category === "all" || photo.category === category);
+    const chosen = this.photos.filter((photo) =>
+      category === "all" ? categoryService.isActive(photo.category) : photo.category === category
+    );
     return downloadZip(this.zipEntries(chosen)).body!;
   }
 

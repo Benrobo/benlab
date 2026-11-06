@@ -28,12 +28,29 @@ class CategoryService {
     return this.categories;
   }
 
+  active() {
+    return this.categories.filter(({ archived }) => !archived);
+  }
+
   ids() {
-    return this.categories.map(({ id }) => id);
+    return this.active().map(({ id }) => id);
   }
 
   find(id: string) {
     return this.categories.find((category) => category.id === id);
+  }
+
+  isActive(id: string) {
+    return Boolean(this.find(id) && !this.find(id)!.archived);
+  }
+
+  async setArchived(id: string, archived: boolean) {
+    const category = this.find(id);
+    if (!category) return null;
+    category.archived = archived;
+    await this.save(category);
+    logger.info(`${archived ? "Archived" : "Restored"} category ${id}`);
+    return category;
   }
 
   async add({ label, description, subjects = [] }: NewCategory) {

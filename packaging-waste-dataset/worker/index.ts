@@ -22,7 +22,7 @@ const rateLimits: { limiter: keyof Env; matches: (method: string, path: string) 
   },
   {
     limiter: "CATEGORY_LIMIT",
-    matches: (method, path) => method === "POST" && path === "/api/categories",
+    matches: (method, path) => method !== "GET" && path.startsWith("/api/categories"),
   },
   { limiter: "API_LIMIT", matches: () => true },
 ];

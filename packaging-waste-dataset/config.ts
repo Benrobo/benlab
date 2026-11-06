@@ -4,6 +4,7 @@ export type Category = {
   description: string;
   subjects: string[];
   addedAt: number;
+  archived?: boolean;
 };
 
 export const engineUrl = "https://packaging-waste-dataset.api.benlab.space";

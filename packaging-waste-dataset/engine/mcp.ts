@@ -7,7 +7,7 @@ import { categoryService } from "./services/category.service";
 import { datasetService } from "./services/dataset.service";
 
 const createGuidelines = () => {
-  const categories = categoryService.list();
+  const categories = categoryService.active();
   const searchExamples = categories
     .map(({ subjects }) => `"${subjects[0]} ${places[1]}"`)
     .join(", ");

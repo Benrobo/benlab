@@ -1,22 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, ImageUp, Plus } from "lucide-react";
+import { Bot, ImageUp } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useCallback, useMemo, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
-import { ControlBar } from "./control-bar";
 import { api } from "./api";
 import { CategorySheet } from "./category-sheet";
 import { ConnectSheet } from "./connect-sheet";
 import { useCategories } from "./categories";
 import { DropOverlay, useFileDrop } from "./file-drop";
+import { CategoryBar, Header, Hero } from "./page-header";
 import { PhotoGrid } from "./photo-grid";
 import { PhotoViewer } from "./photo-viewer";
 import { UploadSheet } from "./upload-sheet";
 
-const formatNumber = new Intl.NumberFormat("en").format;
-
 export function App() {
-  const { categories, categoryColor } = useCategories();
+  const { categories } = useCategories();
   const queryClient = useQueryClient();
   const photosQuery = useQuery({
     queryKey: ["photos"],
@@ -24,12 +22,15 @@ export function App() {
     refetchInterval: 3000,
   });
 
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [chosenCategory, setSelectedCategory] = useState("all");
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
   const [isConnectOpen, setIsConnectOpen] = useState(false);
   const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
   const [uploadSheet, setUploadSheet] = useState<{ id: number; files: File[] } | null>(null);
 
+  const selectedCategory = categories.some(({ id }) => id === chosenCategory)
+    ? chosenCategory
+    : "all";
   const engineOnline = photosQuery.isSuccess;
   const openUploadSheet = useCallback(
     (files: File[] = []) => setUploadSheet({ id: Date.now(), files }),
@@ -52,93 +53,44 @@ export function App() {
     for (const photo of photos) counts.set(photo.category, (counts.get(photo.category) ?? 0) + 1);
     return counts;
   }, [photos]);
-  const visiblePhotos = useMemo(
-    () =>
-      photos.filter((photo) => selectedCategory === "all" || photo.category === selectedCategory),
-    [photos, selectedCategory]
-  );
+  const visiblePhotos = useMemo(() => {
+    const shownCategories = new Set(categories.map(({ id }) => id));
+    return photos.filter((photo) =>
+      selectedCategory === "all"
+        ? shownCategories.has(photo.category)
+        : photo.category === selectedCategory
+    );
+  }, [photos, categories, selectedCategory]);
   const handleRemove = engineOnline ? (id: string) => removePhoto.mutate(id) : undefined;
-
-  const tabs = [
-    { id: "all", label: "All", count: photos.length },
-    ...categories.map(({ id, label }) => ({ id, label, count: photoCounts.get(id) ?? 0 })),
-  ];
 
   return (
     <>
-      <header className="bg-canvas/80 sticky top-0 z-10 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 sm:px-6">
-          <div className="flex items-center gap-3">
-            <Logo />
-            <span className="text-[14px] font-semibold tracking-tight">
-              Packaging waste dataset
-            </span>
-          </div>
+      <Header
+        canUpload={engineOnline}
+        onUpload={() => openUploadSheet()}
+        onConnect={() => setIsConnectOpen(true)}
+      />
+      <Hero
+        photoCount={photos.length}
+        canUpload={engineOnline}
+        onUpload={() => openUploadSheet()}
+        onConnect={() => setIsConnectOpen(true)}
+      />
+      <CategoryBar
+        selectedCategory={selectedCategory}
+        photoCounts={photoCounts}
+        canDownload={visiblePhotos.length > 0}
+        onSelect={setSelectedCategory}
+        onManageCategories={() => setIsCategorySheetOpen(true)}
+      />
 
-          <nav className="order-last flex w-full gap-0.5 overflow-x-auto rounded-full bg-black/[0.04] p-[3px] md:order-none md:mx-auto md:w-auto">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setSelectedCategory(tab.id)}
-                className={`flex h-7 shrink-0 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium whitespace-nowrap transition ${selectedCategory === tab.id ? "text-ink bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]" : "text-ink-2 hover:text-ink"}`}
-              >
-                {tab.id !== "all" && (
-                  <span
-                    className="size-1.5 rounded-full"
-                    style={{ background: categoryColor(tab.id) }}
-                  />
-                )}
-                {tab.label}
-                <span className="text-ink-3 text-[11.5px] tabular-nums">
-                  {formatNumber(tab.count)}
-                </span>
-              </button>
-            ))}
-            <button
-              onClick={() => setIsCategorySheetOpen(true)}
-              aria-label="Add a category"
-              title="Add a category"
-              className="bg-ink ml-1 grid size-7 shrink-0 place-items-center rounded-full text-white shadow-[0_1px_3px_rgba(0,0,0,0.15)] transition hover:bg-black"
-            >
-              <Plus className="size-3.5" strokeWidth={2.5} />
-            </button>
-          </nav>
-
-          <div className="ml-auto flex items-center gap-3 md:ml-0">
-            <span className="text-ink-2 text-[12.5px] tabular-nums">
-              <span className="text-ink font-semibold">{formatNumber(photos.length)}</span> photos
-            </span>
-            <button
-              onClick={() => setIsConnectOpen(true)}
-              aria-label="Connect an AI agent"
-              title="Connect an AI agent"
-              className="text-ink-2 hover:text-ink grid size-8 place-items-center rounded-full bg-black/[0.04] transition hover:bg-black/[0.08]"
-            >
-              <Bot className="size-4" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-[1600px] px-4 pt-1 pb-28 sm:px-6">
+      <main className="mx-auto max-w-[1600px] px-4 pt-2 pb-16 sm:px-6">
         {photosQuery.isPending ? null : visiblePhotos.length ? (
           <PhotoGrid photos={visiblePhotos} onOpen={setOpenPhotoId} onRemove={handleRemove} />
         ) : (
-          <div className="grid min-h-[60dvh] place-items-center">
-            <div className="text-ink-3 grid size-16 place-items-center rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.04]">
-              <ImageUp className="size-6" />
-            </div>
-          </div>
+          <EmptyState onUpload={() => openUploadSheet()} onConnect={() => setIsConnectOpen(true)} />
         )}
       </main>
-
-      <ControlBar
-        engineOnline={engineOnline}
-        photoCounts={photoCounts}
-        selectedCategory={selectedCategory}
-        canDownload={visiblePhotos.length > 0}
-        onUploadClick={() => openUploadSheet()}
-      />
 
       <AnimatePresence>
         {uploadSheet && (
@@ -151,7 +103,11 @@ export function App() {
         )}
         {isConnectOpen && <ConnectSheet key="connect" onClose={() => setIsConnectOpen(false)} />}
         {isCategorySheetOpen && (
-          <CategorySheet key="category" onClose={() => setIsCategorySheetOpen(false)} />
+          <CategorySheet
+            key="category"
+            photoCounts={photoCounts}
+            onClose={() => setIsCategorySheetOpen(false)}
+          />
         )}
       </AnimatePresence>
 
@@ -185,19 +141,31 @@ export function App() {
   );
 }
 
-function Logo() {
-  const { categories, categoryColor } = useCategories();
+function EmptyState({ onUpload, onConnect }: { onUpload: () => void; onConnect: () => void }) {
   return (
-    <span className="bg-ink grid size-7 place-items-center rounded-[9px]">
-      <span className="flex h-3 items-end gap-[3px]">
-        {categories.slice(0, 3).map(({ id }, index) => (
-          <span
-            key={id}
-            className="w-[3px] rounded-full"
-            style={{ background: categoryColor(id), height: `${55 + index * 22}%` }}
-          />
-        ))}
-      </span>
-    </span>
+    <div className="grid min-h-[40dvh] place-items-center rounded-3xl border-2 border-dashed border-black/[0.07]">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <span className="text-ink-3 grid size-12 place-items-center rounded-2xl bg-white ring-1 ring-black/[0.05]">
+          <ImageUp className="size-5" />
+        </span>
+        <p className="text-[14px] font-medium">No photos here yet</p>
+        <div className="flex gap-2">
+          <button
+            onClick={onUpload}
+            className="bg-ink flex h-9 items-center gap-2 rounded-full px-4 text-[13px] font-medium text-white transition hover:bg-black"
+          >
+            <ImageUp className="size-4" />
+            Upload photos
+          </button>
+          <button
+            onClick={onConnect}
+            className="text-ink flex h-9 items-center gap-2 rounded-full bg-black/[0.05] px-4 text-[13px] font-medium transition hover:bg-black/[0.09]"
+          >
+            <Bot className="size-4" />
+            Connect agent
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

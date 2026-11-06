@@ -41,6 +41,18 @@ export async function startEngine() {
         },
       },
 
+      "/api/categories/:id": {
+        PATCH: async (request) => {
+          const { archived } = await request.json();
+          if (typeof archived !== "boolean") {
+            return Response.json({ error: "Send archived as true or false" }, { status: 400 });
+          }
+          const category = await categoryService.setArchived(request.params.id, archived);
+          if (!category) return Response.json({ error: "No such category" }, { status: 404 });
+          return Response.json(category);
+        },
+      },
+
       "/api/photos": {
         GET: async () => Response.json(await datasetService.list()),
       },

@@ -15,19 +15,21 @@ const categoryColors = [
 ];
 
 export function useCategories() {
-  const { data: categories = [] } = useQuery({
+  const { data: allCategories = [] } = useQuery({
     queryKey: ["categories"],
     queryFn: api.getCategories,
     refetchInterval: 30_000,
   });
 
+  const categories = allCategories.filter(({ archived }) => !archived);
+
   const categoryLabel = (id: string) =>
-    categories.find((category) => category.id === id)?.label ?? id;
+    allCategories.find((category) => category.id === id)?.label ?? id;
 
   const categoryColor = (id: string) => {
-    const index = categories.findIndex((category) => category.id === id);
+    const index = allCategories.findIndex((category) => category.id === id);
     return index < 0 ? "#a3a29d" : categoryColors[index % categoryColors.length]!;
   };
 
-  return { categories, categoryLabel, categoryColor };
+  return { categories, allCategories, categoryLabel, categoryColor };
 }
