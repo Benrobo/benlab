@@ -1,0 +1,8 @@
+node_modules
+dist
+.wrangler
+.cache
+.env
+public/dataset
+review
+.cache
