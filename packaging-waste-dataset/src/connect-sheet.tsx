@@ -1,4 +1,4 @@
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, Plug } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Sheet, SheetButton } from "./sheet";
@@ -10,6 +10,7 @@ const examplePrompt =
 type App = {
   id: string;
   label: string;
+  icon?: string;
   steps: (url: string) => { text: string; copy?: string }[];
 };
 
@@ -17,6 +18,7 @@ const apps: App[] = [
   {
     id: "claude",
     label: "Claude",
+    icon: "/apps/claude.png",
     steps: (url) => [
       { text: "In Claude, open Settings, then Connectors, then Add custom connector." },
       { text: `Name it ${serverName} and paste this URL.`, copy: url },
@@ -28,6 +30,7 @@ const apps: App[] = [
   {
     id: "chatgpt",
     label: "ChatGPT",
+    icon: "/apps/chatgpt.svg",
     steps: (url) => [
       {
         text: "In ChatGPT, open Settings, then Apps, then Advanced settings, and turn on Developer mode.",
@@ -42,6 +45,7 @@ const apps: App[] = [
   {
     id: "claude-code",
     label: "Claude Code",
+    icon: "/apps/claude.png",
     steps: (url) => [
       {
         text: "Run this in your terminal.",
@@ -66,7 +70,6 @@ export function ConnectSheet({ onClose }: { onClose: () => void }) {
   const [appId, setAppId] = useState(apps[0]!.id);
 
   const url = `${location.origin}/api/mcp`;
-  const app = apps.find(({ id }) => id === appId)!;
 
   return (
     <Sheet
@@ -81,30 +84,43 @@ export function ConnectSheet({ onClose }: { onClose: () => void }) {
         </p>
 
         <nav className="flex gap-0.5 rounded-full bg-black/[0.04] p-[3px]">
-          {apps.map(({ id, label }) => (
+          {apps.map(({ id, label, icon }) => (
             <button
               key={id}
               onClick={() => setAppId(id)}
-              className={`h-7 flex-1 rounded-full text-[12.5px] font-medium whitespace-nowrap transition ${appId === id ? "text-ink bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]" : "text-ink-2 hover:text-ink"}`}
+              className={`flex h-7 flex-1 items-center justify-center gap-1.5 rounded-full text-[12.5px] font-medium whitespace-nowrap transition ${appId === id ? "text-ink bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]" : "text-ink-2 hover:text-ink"}`}
             >
+              {icon ? (
+                <img src={icon} alt="" className="size-3.5 rounded-[4px]" />
+              ) : (
+                <Plug className="size-3.5" />
+              )}
               {label}
             </button>
           ))}
         </nav>
 
-        <ol className="space-y-3">
-          {app.steps(url).map((step, index) => (
-            <li key={step.text} className="flex gap-3">
-              <span className="text-ink-2 grid size-5 shrink-0 place-items-center rounded-full bg-black/[0.05] text-[11px] font-semibold tabular-nums">
-                {index + 1}
-              </span>
-              <div className="min-w-0 flex-1 space-y-2">
-                <p className="text-ink text-[13px] leading-snug">{step.text}</p>
-                {step.copy && <CopyBlock value={step.copy} />}
-              </div>
-            </li>
+        <div className="grid">
+          {apps.map((app) => (
+            <ol
+              key={app.id}
+              aria-hidden={app.id !== appId}
+              className={`space-y-3 [grid-area:1/1] ${app.id === appId ? "" : "invisible"}`}
+            >
+              {app.steps(url).map((step, index) => (
+                <li key={step.text} className="flex gap-3">
+                  <span className="text-ink-2 grid size-5 shrink-0 place-items-center rounded-full bg-black/[0.05] text-[11px] font-semibold tabular-nums">
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <p className="text-ink text-[13px] leading-snug">{step.text}</p>
+                    {step.copy && <CopyBlock value={step.copy} />}
+                  </div>
+                </li>
+              ))}
+            </ol>
           ))}
-        </ol>
+        </div>
 
         <div className="space-y-2">
           <span className="text-ink-2 text-[12px] font-medium">Try asking</span>
