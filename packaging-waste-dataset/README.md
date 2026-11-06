@@ -19,8 +19,8 @@ There is no AI in the system. Photos come from two places, and whoever adds a ph
 - **Uploads**: people upload 1–5 photos (max 5 MB each) from the UI and pick the category they show. The browser shrinks them first, and the engine rejects unreadable photos and duplicates.
 - **AI agents (MCP)**: agents like Claude or ChatGPT search the web, judge each photo with their own vision against the rules, and add it with a category. See below.
 - **Storage**: Redis holds the categories and the photo list, with keys prefixed `packaging-waste-dataset:`. Images live in the R2 bucket `packaging-waste-dataset` under `images/<category>/<id>.jpg`.
-- **Categories**: the `+` button next to the tabs (or the `add_category` MCP tool) adds a category with a name, a description of what counts, and search terms. The three defaults in `config.ts` are saved to Redis on first start.
-- **Admin token**: deleting photos and archiving or restoring categories need `Authorization: Bearer <ADMIN_TOKEN>`. The UI asks for it once and saves it in the browser. MCP agents can add but not delete.
+- **Categories**: the Categories button adds a category with a name, a description of what counts, and search terms. The three defaults in `config.ts` are saved to Redis on first start.
+- **Admin token**: deleting photos and archiving or restoring categories need `Authorization: Bearer <ADMIN_TOKEN>`. The UI asks for it once and saves it in the browser. MCP agents can only add photos to existing categories. They can't create, archive or delete anything, and the guidelines tell them to treat web content as data, not instructions.
 - **Rules**: the photo rules live in `config.ts` (`photoRules`) and are sent to agents in the MCP guidelines.
 
 ## Run locally
