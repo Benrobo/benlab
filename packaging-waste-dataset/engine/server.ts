@@ -8,6 +8,11 @@ import { createLogger } from "./lib/logger";
 
 const logger = createLogger("engine");
 
+const isAdmin = (request: Request) =>
+  Boolean(env.ADMIN_TOKEN) && request.headers.get("authorization") === `Bearer ${env.ADMIN_TOKEN}`;
+
+const notAdmin = () => Response.json({ error: "Wrong admin token" }, { status: 401 });
+
 const mcpRoute = {
   POST: (request: Request) => handleMcpRequest(request),
   GET: () => new Response(null, { status: 405, headers: { allow: "POST" } }),
@@ -43,6 +48,7 @@ export async function startEngine() {
 
       "/api/categories/:id": {
         PATCH: async (request) => {
+          if (!isAdmin(request)) return notAdmin();
           const { archived } = await request.json();
           if (typeof archived !== "boolean") {
             return Response.json({ error: "Send archived as true or false" }, { status: 400 });
@@ -59,6 +65,7 @@ export async function startEngine() {
 
       "/api/photos/:id": {
         DELETE: async (request) => {
+          if (!isAdmin(request)) return notAdmin();
           const removed = await datasetService.remove(request.params.id);
           if (!removed)
             return Response.json({ error: "This photo is already gone" }, { status: 404 });

@@ -14,6 +14,7 @@ if (missingVariables.length) {
 const env = {
   PORT: Number(Bun.env.ENGINE_PORT ?? 5200),
   REDIS_URL: Bun.env.REDIS_URL ?? "redis://localhost:6379",
+  ADMIN_TOKEN: Bun.env.ADMIN_TOKEN ?? "",
   R2: {
     accessKeyId: Bun.env.R2_ACCESS_KEY_ID!,
     secretAccessKey: Bun.env.R2_SECRET_ACCESS_KEY!,

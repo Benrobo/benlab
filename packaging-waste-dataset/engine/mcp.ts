@@ -26,7 +26,7 @@ ${photoRules.map((rule) => `- ${rule}`).join("\n")}
 2. Search the web for real photos taken in Nigeria, for example ${searchExamples}. Try places like ${places.filter(Boolean).join(", ")}. News articles, blogs, forums and social posts are better sources than stock photo sites, shops or product pages.
 3. Call view_image on a candidate to see it and check it isn't already in the dataset.
 4. Call add_photo with the direct image URL (or base64 data), the category and a short reason. Add the page the image came from as pageUrl when you have it.
-5. Use list_photos and view_image with a photoId to review saved photos, and remove_photo for any that break the rules.
+5. Use list_photos and view_image with a photoId to see what is already saved, so you add something new.
 
 Images must be at least 320px on the shortest side and not transparent or SVG. Duplicates and near duplicates are rejected. If a kind of packaging waste is missing, add_category creates a new category.`;
 };
@@ -162,19 +162,6 @@ function createServer() {
     async (newCategory) => {
       const result = await categoryService.add(newCategory);
       return { ...answer(result), isError: Boolean(result.problem) };
-    }
-  );
-
-  server.registerTool(
-    "remove_photo",
-    {
-      description: "Remove a photo from the dataset that breaks the rules.",
-      inputSchema: { id: z.string() },
-      annotations: { destructiveHint: true },
-    },
-    async ({ id }) => {
-      const removed = await datasetService.remove(id);
-      return { ...answer({ removed }), isError: !removed };
     }
   );
 

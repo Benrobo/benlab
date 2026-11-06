@@ -20,6 +20,7 @@ There is no AI in the system. Photos come from two places, and whoever adds a ph
 - **AI agents (MCP)**: agents like Claude or ChatGPT search the web, judge each photo with their own vision against the rules, and add it with a category. See below.
 - **Storage**: Redis holds the categories and the photo list, with keys prefixed `packaging-waste-dataset:`. Images live in the R2 bucket `packaging-waste-dataset` under `images/<category>/<id>.jpg`.
 - **Categories**: the `+` button next to the tabs (or the `add_category` MCP tool) adds a category with a name, a description of what counts, and search terms. The three defaults in `config.ts` are saved to Redis on first start.
+- **Admin token**: deleting photos and archiving or restoring categories need `Authorization: Bearer <ADMIN_TOKEN>`. The UI asks for it once and saves it in the browser. MCP agents can add but not delete.
 - **Rules**: the photo rules live in `config.ts` (`photoRules`) and are sent to agents in the MCP guidelines.
 
 ## Run locally
@@ -35,14 +36,15 @@ The UI runs on http://localhost:5199 and the engine on port 5200.
 
 ## Environment
 
-| Variable               | Purpose                                      |
-| ---------------------- | -------------------------------------------- |
-| `R2_ACCESS_KEY_ID`     | R2 credentials                               |
-| `R2_SECRET_ACCESS_KEY` | R2 credentials                               |
-| `R2_ENDPOINT`          | `https://<account>.r2.cloudflarestorage.com` |
-| `R2_BUCKET`            | `packaging-waste-dataset`                    |
-| `R2_PUBLIC_URL`        | Public URL of the bucket                     |
-| `REDIS_URL`            | Redis, defaults to `redis://localhost:6379`  |
+| Variable               | Purpose                                        |
+| ---------------------- | ---------------------------------------------- |
+| `R2_ACCESS_KEY_ID`     | R2 credentials                                 |
+| `R2_SECRET_ACCESS_KEY` | R2 credentials                                 |
+| `R2_ENDPOINT`          | `https://<account>.r2.cloudflarestorage.com`   |
+| `R2_BUCKET`            | `packaging-waste-dataset`                      |
+| `R2_PUBLIC_URL`        | Public URL of the bucket                       |
+| `REDIS_URL`            | Redis, defaults to `redis://localhost:6379`    |
+| `ADMIN_TOKEN`          | Needed to delete photos and archive categories |
 
 ## Deploy
 
@@ -70,7 +72,6 @@ AI agents like Claude or ChatGPT can collect photos themselves through the MCP s
 | `list_photos`    | Photos already in the dataset                                     |
 | `view_image`     | See an image by URL, base64 or photo id, and check for duplicates |
 | `add_photo`      | Add a photo with its category and a reason                        |
-| `remove_photo`   | Remove a photo that breaks the rules                              |
 
 Connect with just that URL, no token needed. The robot button in the UI shows how to connect Claude, ChatGPT, Claude Code and other MCP clients.
 

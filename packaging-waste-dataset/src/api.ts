@@ -1,3 +1,4 @@
+import { forgetAdminToken, getAdminToken } from "./admin-token";
 import type { Category } from "../config";
 import type { PhotoWithUrl, UploadResult } from "../engine/types/dataset.types";
 
@@ -20,9 +21,16 @@ async function shrinkPhoto(file: File) {
   }
 }
 
+async function adminHeaders() {
+  const token = await getAdminToken();
+  if (!token) throw new Error("This needs the admin token");
+  return { authorization: `Bearer ${token}` };
+}
+
 async function readJson<T>(response: Response) {
   if (!response.ok) {
     const body = await response.json().catch(() => null);
+    if (response.status === 401) forgetAdminToken();
     throw new Error(body?.error ?? "The engine didn't respond");
   }
   return (await response.json()) as T;
@@ -32,10 +40,10 @@ export type NewCategory = { label: string; description: string; subjects: string
 
 export const api = {
   getCategories: () => fetch("/api/categories").then(readJson<Category[]>),
-  setCategoryArchived: (id: string, archived: boolean) =>
+  setCategoryArchived: async (id: string, archived: boolean) =>
     fetch(`/api/categories/${id}`, {
       method: "PATCH",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...(await adminHeaders()) },
       body: JSON.stringify({ archived }),
     }).then(readJson<Category>),
   addCategory: (category: NewCategory) =>
@@ -45,8 +53,10 @@ export const api = {
       body: JSON.stringify(category),
     }).then(readJson<Category>),
   getPhotos: () => fetch("/api/photos").then(readJson<PhotoWithUrl[]>),
-  removePhoto: (id: string) =>
-    fetch(`/api/photos/${id}`, { method: "DELETE" }).then(readJson<{ removed: boolean }>),
+  removePhoto: async (id: string) =>
+    fetch(`/api/photos/${id}`, { method: "DELETE", headers: await adminHeaders() }).then(
+      readJson<{ removed: boolean }>
+    ),
   uploadPhotos: async (files: File[], category: string) => {
     const form = new FormData();
     form.append("category", category);
