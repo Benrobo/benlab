@@ -47,7 +47,7 @@ The UI runs on http://localhost:5199 and the engine on port 5200.
 
 ## Deploy
 
-- **Engine**: `docker-compose.yml` runs the engine and Redis on Dokploy, built from this repo.
+- **Engine**: a Dokploy application built from the `Dockerfile` in this folder, at https://packaging-waste-dataset.api.benlab.space. Redis is a separate Dokploy Redis service in the same project.
 - **UI**: `bun run deploy` builds the UI and deploys it as a Cloudflare Worker with static assets. The Worker rate limits `/api/*` per IP and forwards it to the engine at `ENGINE_URL`.
 
 ## API
@@ -91,5 +91,4 @@ engine/
   config/                 env, R2, paths
 src/                      React UI
 worker/index.ts           Cloudflare Worker: UI, rate limits, proxy to the engine
-docker-compose.yml        engine and Redis for Dokploy
 ```

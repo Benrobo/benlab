@@ -3,7 +3,7 @@ import { APICallError, generateText, Output } from "ai";
 import { z } from "zod";
 import { aiChecksPerDay } from "../../../config";
 import env from "../../config/env";
-import { redis } from "../../config/redis";
+import { redis, redisKey } from "../../config/redis";
 import { categoryService } from "../category.service";
 import { AI_MODEL_CONFIG } from "./models";
 import { createLogger } from "../../lib/logger";
@@ -50,7 +50,7 @@ ${categoryService
 Give the photo's category only when it follows every rule below, otherwise null:
 ${rules.map((rule) => `- ${rule}`).join("\n")}`;
 
-const checksTodayKey = () => `ai-checks:${new Date().toISOString().slice(0, 10)}`;
+const checksTodayKey = () => redisKey(`ai-checks:${new Date().toISOString().slice(0, 10)}`);
 
 class ClassifierService {
   private readonly openrouter = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });

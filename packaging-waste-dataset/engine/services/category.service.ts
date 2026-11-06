@@ -1,10 +1,10 @@
 import { defaultCategories, type Category } from "../../config";
-import { redis } from "../config/redis";
+import { redis, redisKey } from "../config/redis";
 import { createLogger } from "../lib/logger";
 
 const logger = createLogger("categories");
 
-const categoriesKey = "categories";
+const categoriesKey = redisKey("categories");
 
 type NewCategory = { label: string; description: string; subjects?: string[] };
 
