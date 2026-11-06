@@ -3,7 +3,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { engineUrl } from "../config";
 import { StepVisual, type Visual } from "./connect-visuals";
-import { Sheet, SheetButton } from "./sheet";
+import { Modal, ModalButton } from "./modal";
 
 const serverName = "packaging-waste-dataset";
 const url = `${engineUrl}/mcp`;
@@ -139,7 +139,7 @@ const apps: App[] = [
   },
 ];
 
-export function ConnectSheet({ onClose }: { onClose: () => void }) {
+export function ConnectModal({ onClose }: { onClose: () => void }) {
   const [appId, setAppId] = useState(apps[0]!.id);
   const [stepIndex, setStepIndex] = useState(0);
 
@@ -152,10 +152,11 @@ export function ConnectSheet({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Sheet
+    <Modal
       title="Connect an AI agent"
       subtitle="Your agent finds, checks and adds photos for you"
       onClose={onClose}
+      wide
     >
       <div className="space-y-4 px-5 pb-5">
         <nav className="flex gap-0.5 rounded-full bg-black/[0.04] p-[3px]">
@@ -220,17 +221,17 @@ export function ConnectSheet({ onClose }: { onClose: () => void }) {
         </div>
         <div className="flex gap-2">
           {stepIndex > 0 && (
-            <SheetButton onClick={() => setStepIndex(stepIndex - 1)}>Back</SheetButton>
+            <ModalButton onClick={() => setStepIndex(stepIndex - 1)}>Back</ModalButton>
           )}
-          <SheetButton
+          <ModalButton
             onClick={() => (isLastStep ? onClose() : setStepIndex(stepIndex + 1))}
             primary
           >
             {isLastStep ? "Done" : "Next"}
-          </SheetButton>
+          </ModalButton>
         </div>
       </footer>
-    </Sheet>
+    </Modal>
   );
 }
 

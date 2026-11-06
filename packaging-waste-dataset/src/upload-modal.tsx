@@ -6,7 +6,7 @@ import { uploadLimit } from "../config";
 import { api } from "./api";
 import { useCategories } from "./categories";
 import { photoTips } from "./photo-tips";
-import { Sheet, SheetButton } from "./sheet";
+import { Modal, ModalButton } from "./modal";
 
 const rejectionMessages: Record<string, string> = {
   duplicate: "Already in the dataset",
@@ -44,9 +44,9 @@ function createUpload(file: File): Upload {
 
 const onlyImages = (files: File[]) => files.filter((file) => file.type.startsWith("image/"));
 
-type UploadSheetProps = { initialFiles: File[]; initialCategory: string; onClose: () => void };
+type UploadModalProps = { initialFiles: File[]; initialCategory: string; onClose: () => void };
 
-export function UploadSheet({ initialFiles, initialCategory, onClose }: UploadSheetProps) {
+export function UploadModal({ initialFiles, initialCategory, onClose }: UploadModalProps) {
   const { categoryLabel } = useCategories();
   const queryClient = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -152,7 +152,7 @@ export function UploadSheet({ initialFiles, initialCategory, onClose }: UploadSh
   }[step];
 
   return (
-    <Sheet
+    <Modal
       title="Add photos"
       subtitle={subtitle}
       onClose={close}
@@ -201,17 +201,17 @@ export function UploadSheet({ initialFiles, initialCategory, onClose }: UploadSh
         <footer className="flex items-center justify-end gap-2 border-t border-black/[0.05] px-5 py-3.5">
           {step === "finished" ? (
             <>
-              <SheetButton onClick={startOver}>Add more</SheetButton>
-              <SheetButton onClick={close} primary>
+              <ModalButton onClick={startOver}>Add more</ModalButton>
+              <ModalButton onClick={close} primary>
                 Done
-              </SheetButton>
+              </ModalButton>
             </>
           ) : (
             <>
-              <SheetButton onClick={startOver} disabled={isChecking}>
+              <ModalButton onClick={startOver} disabled={isChecking}>
                 Clear
-              </SheetButton>
-              <SheetButton
+              </ModalButton>
+              <ModalButton
                 onClick={checkUploads}
                 disabled={isChecking || !readyUploads.length || !category}
                 primary
@@ -220,7 +220,7 @@ export function UploadSheet({ initialFiles, initialCategory, onClose }: UploadSh
                 {isChecking
                   ? "Adding"
                   : `Add ${readyUploads.length} ${readyUploads.length === 1 ? "photo" : "photos"}`}
-              </SheetButton>
+              </ModalButton>
             </>
           )}
         </footer>
@@ -237,7 +237,7 @@ export function UploadSheet({ initialFiles, initialCategory, onClose }: UploadSh
           event.target.value = "";
         }}
       />
-    </Sheet>
+    </Modal>
   );
 }
 

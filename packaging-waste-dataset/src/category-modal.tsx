@@ -1,51 +1,77 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Archive, ArchiveRestore, LoaderCircle, Plus } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import toast from "react-hot-toast";
 import type { Category } from "../config";
 import { api } from "./api";
 import { useCategories } from "./categories";
-import { Sheet, SheetButton } from "./sheet";
+import { Modal, ModalButton } from "./modal";
 
 const formatNumber = new Intl.NumberFormat("en").format;
 
-type CategorySheetProps = { photoCounts: Map<string, number>; onClose: () => void };
+type CategoryModalProps = { photoCounts: Map<string, number>; onClose: () => void };
 
-export function CategorySheet({ photoCounts, onClose }: CategorySheetProps) {
+export function CategoryModal({ photoCounts, onClose }: CategoryModalProps) {
   const { allCategories } = useCategories();
   const [isAdding, setIsAdding] = useState(false);
 
   const activeCategories = allCategories.filter(({ archived }) => !archived);
   const archivedCategories = allCategories.filter(({ archived }) => archived);
 
-  if (isAdding) return <AddCategory onBack={() => setIsAdding(false)} onClose={onClose} />;
-
   return (
-    <Sheet
-      title="Categories"
-      subtitle="Add new kinds of packaging waste, or archive ones you no longer collect"
+    <Modal
+      title={isAdding ? "New category" : "Categories"}
+      subtitle={
+        isAdding
+          ? "A new kind of packaging waste to collect"
+          : "Add new kinds of packaging waste, or archive ones you no longer collect"
+      }
       onClose={onClose}
     >
-      <div className="space-y-5 px-5 pb-5">
-        <CategoryList categories={activeCategories} photoCounts={photoCounts} />
-        {archivedCategories.length > 0 && (
-          <div className="space-y-2">
-            <span className="text-ink-3 text-[11.5px] font-semibold tracking-wide uppercase">
-              Archived
-            </span>
-            <CategoryList categories={archivedCategories} photoCounts={photoCounts} />
-          </div>
-        )}
-      </div>
+      <AnimatePresence mode="wait" initial={false}>
+        {isAdding ? (
+          <Slide key="add" direction={1}>
+            <AddCategory onBack={() => setIsAdding(false)} />
+          </Slide>
+        ) : (
+          <Slide key="list" direction={-1}>
+            <div className="space-y-5 px-5 pb-5">
+              <CategoryList categories={activeCategories} photoCounts={photoCounts} />
+              {archivedCategories.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-ink-3 text-[11.5px] font-semibold tracking-wide uppercase">
+                    Archived
+                  </span>
+                  <CategoryList categories={archivedCategories} photoCounts={photoCounts} />
+                </div>
+              )}
+            </div>
 
-      <footer className="flex justify-end gap-2 border-t border-black/[0.05] px-5 py-3.5">
-        <SheetButton onClick={onClose}>Done</SheetButton>
-        <SheetButton onClick={() => setIsAdding(true)} primary>
-          <Plus className="size-4" />
-          New category
-        </SheetButton>
-      </footer>
-    </Sheet>
+            <footer className="flex justify-end gap-2 border-t border-black/[0.05] px-5 py-3.5">
+              <ModalButton onClick={onClose}>Done</ModalButton>
+              <ModalButton onClick={() => setIsAdding(true)} primary>
+                <Plus className="size-4" />
+                New category
+              </ModalButton>
+            </footer>
+          </Slide>
+        )}
+      </AnimatePresence>
+    </Modal>
+  );
+}
+
+function Slide({ direction, children }: { direction: number; children: ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 24 * direction }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 24 * direction }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+    >
+      {children}
+    </motion.div>
   );
 }
 
@@ -105,7 +131,7 @@ function ArchiveButton({ category }: { category: Category }) {
   );
 }
 
-function AddCategory({ onBack, onClose }: { onBack: () => void; onClose: () => void }) {
+function AddCategory({ onBack }: { onBack: () => void }) {
   const queryClient = useQueryClient();
   const [label, setLabel] = useState("");
   const [description, setDescription] = useState("");
@@ -129,12 +155,7 @@ function AddCategory({ onBack, onClose }: { onBack: () => void; onClose: () => v
   const canSave = label.trim().length > 1 && description.trim().length > 4;
 
   return (
-    <Sheet
-      title="New category"
-      subtitle="A new kind of packaging waste to collect"
-      onClose={onClose}
-      canClose={!addCategory.isPending}
-    >
+    <>
       <div className="space-y-4 px-5 pb-5">
         <Field label="Name">
           <input
@@ -168,19 +189,19 @@ function AddCategory({ onBack, onClose }: { onBack: () => void; onClose: () => v
       </div>
 
       <footer className="flex items-center justify-end gap-2 border-t border-black/[0.05] px-5 py-3.5">
-        <SheetButton onClick={onBack} disabled={addCategory.isPending}>
+        <ModalButton onClick={onBack} disabled={addCategory.isPending}>
           Back
-        </SheetButton>
-        <SheetButton
+        </ModalButton>
+        <ModalButton
           onClick={() => addCategory.mutate()}
           disabled={!canSave || addCategory.isPending}
           primary
         >
           {addCategory.isPending && <LoaderCircle className="size-4 animate-spin" />}
           Add category
-        </SheetButton>
+        </ModalButton>
       </footer>
-    </Sheet>
+    </>
   );
 }
 

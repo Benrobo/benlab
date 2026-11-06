@@ -4,14 +4,14 @@ import { AnimatePresence } from "motion/react";
 import { useCallback, useMemo, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { api } from "./api";
-import { CategorySheet } from "./category-sheet";
-import { ConnectSheet } from "./connect-sheet";
+import { CategoryModal } from "./category-modal";
+import { ConnectModal } from "./connect-modal";
 import { useCategories } from "./categories";
 import { DropOverlay, useFileDrop } from "./file-drop";
 import { CategoryBar, Header, Hero } from "./page-header";
 import { PhotoGrid } from "./photo-grid";
 import { PhotoViewer } from "./photo-viewer";
-import { UploadSheet } from "./upload-sheet";
+import { UploadModal } from "./upload-modal";
 
 export function App() {
   const { categories } = useCategories();
@@ -25,18 +25,18 @@ export function App() {
   const [chosenCategory, setSelectedCategory] = useState("all");
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
   const [isConnectOpen, setIsConnectOpen] = useState(false);
-  const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
-  const [uploadSheet, setUploadSheet] = useState<{ id: number; files: File[] } | null>(null);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [uploadModal, setUploadModal] = useState<{ id: number; files: File[] } | null>(null);
 
   const selectedCategory = categories.some(({ id }) => id === chosenCategory)
     ? chosenCategory
     : "all";
   const engineOnline = photosQuery.isSuccess;
-  const openUploadSheet = useCallback(
-    (files: File[] = []) => setUploadSheet({ id: Date.now(), files }),
+  const openUploadModal = useCallback(
+    (files: File[] = []) => setUploadModal({ id: Date.now(), files }),
     []
   );
-  const isDraggingFiles = useFileDrop(openUploadSheet, engineOnline && !uploadSheet);
+  const isDraggingFiles = useFileDrop(openUploadModal, engineOnline && !uploadModal);
 
   const removePhoto = useMutation({
     mutationFn: api.removePhoto,
@@ -67,13 +67,13 @@ export function App() {
     <>
       <Header
         canUpload={engineOnline}
-        onUpload={() => openUploadSheet()}
+        onUpload={() => openUploadModal()}
         onConnect={() => setIsConnectOpen(true)}
       />
       <Hero
         photoCount={photos.length}
         canUpload={engineOnline}
-        onUpload={() => openUploadSheet()}
+        onUpload={() => openUploadModal()}
         onConnect={() => setIsConnectOpen(true)}
       />
       <CategoryBar
@@ -81,32 +81,32 @@ export function App() {
         photoCounts={photoCounts}
         canDownload={visiblePhotos.length > 0}
         onSelect={setSelectedCategory}
-        onManageCategories={() => setIsCategorySheetOpen(true)}
+        onManageCategories={() => setIsCategoryModalOpen(true)}
       />
 
       <main className="mx-auto max-w-[1600px] px-4 pt-2 pb-16 sm:px-6">
         {photosQuery.isPending ? null : visiblePhotos.length ? (
           <PhotoGrid photos={visiblePhotos} onOpen={setOpenPhotoId} onRemove={handleRemove} />
         ) : (
-          <EmptyState onUpload={() => openUploadSheet()} onConnect={() => setIsConnectOpen(true)} />
+          <EmptyState onUpload={() => openUploadModal()} onConnect={() => setIsConnectOpen(true)} />
         )}
       </main>
 
       <AnimatePresence>
-        {uploadSheet && (
-          <UploadSheet
-            key={uploadSheet.id}
-            initialFiles={uploadSheet.files}
+        {uploadModal && (
+          <UploadModal
+            key={uploadModal.id}
+            initialFiles={uploadModal.files}
             initialCategory={selectedCategory === "all" ? "" : selectedCategory}
-            onClose={() => setUploadSheet(null)}
+            onClose={() => setUploadModal(null)}
           />
         )}
-        {isConnectOpen && <ConnectSheet key="connect" onClose={() => setIsConnectOpen(false)} />}
-        {isCategorySheetOpen && (
-          <CategorySheet
+        {isConnectOpen && <ConnectModal key="connect" onClose={() => setIsConnectOpen(false)} />}
+        {isCategoryModalOpen && (
+          <CategoryModal
             key="category"
             photoCounts={photoCounts}
-            onClose={() => setIsCategorySheetOpen(false)}
+            onClose={() => setIsCategoryModalOpen(false)}
           />
         )}
       </AnimatePresence>
