@@ -6,6 +6,7 @@ import { datasetService } from "./dataset.service";
 import { imageService } from "./image.service";
 import { reviewService } from "./review.service";
 import { searchService, type SearchResult } from "./search.service";
+import { uploadService } from "./upload.service";
 import { createLogger } from "../lib/logger";
 
 const logger = createLogger("collector");
@@ -31,6 +32,7 @@ class CollectorService {
 
     const worker = async () => {
       while (!signal.aborted && !datasetService.isCategoryFull(category.id) && queue.length) {
+        await uploadService.waitUntilIdle();
         await datasetService.refresh();
         if (datasetService.isCategoryFull(category.id)) break;
         await this.checkSearchResult(queue.shift()!, category, job, hashesSeenThisRun, signal);

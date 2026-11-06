@@ -9,32 +9,62 @@ import { createLogger } from "../lib/logger";
 const logger = createLogger("upload");
 
 class UploadService {
-  async upload(file: File): Promise<UploadResult> {
+  private activeUploads = 0;
+
+  async waitUntilIdle() {
+    while (this.activeUploads) await Bun.sleep(250);
+  }
+
+  async upload(file: File) {
+    this.activeUploads++;
+    try {
+      return await this.check(file);
+    } finally {
+      this.activeUploads--;
+    }
+  }
+
+  private async check(file: File): Promise<UploadResult> {
+    const startedAt = performance.now();
+    const timings: string[] = [];
+    const timed = async <T>(step: string, work: Promise<T>) => {
+      const stepStartedAt = performance.now();
+      const result = await work;
+      timings.push(`${step} ${Math.round(performance.now() - stepStartedAt)}ms`);
+      return result;
+    };
+    const summary = () =>
+      `in ${Math.round(performance.now() - startedAt)}ms (${timings.join(", ")})`;
     const rejected = (reason: string): UploadResult => {
-      logger.info(`${file.name} rejected: ${reason}`);
+      logger.info(`${file.name} rejected ${summary()}: ${reason}`);
       return { fileName: file.name, accepted: false, reason };
     };
     if (file.size > uploadLimit.bytes) return rejected("too-large");
 
-    const image = await imageService
-      .prepare(Buffer.from(await file.arrayBuffer()))
-      .catch(() => null);
+    const image = await timed(
+      "prepare",
+      imageService.prepare(Buffer.from(await file.arrayBuffer())).catch(() => null)
+    );
     if (!image) return rejected("unreadable");
 
-    const { width, height, preview, visualHash } = await imageService.describe(image);
-    await datasetService.refresh();
-    if (datasetService.looksLikeSavedPhoto(visualHash)) return rejected("duplicate");
-
+    const { width, height, preview, visualHash } = await timed(
+      "describe",
+      imageService.describe(image)
+    );
     const id = imageService.createId(image);
     const temporaryKey = `tmp/${id}.jpg`;
     const [check] = await Promise.all([
-      classifierService.checkPhoto(preview),
-      uploadFile(temporaryKey, image, "image/jpeg", "no-store"),
+      timed("check", classifierService.checkPhoto(preview)),
+      timed("tmp upload", uploadFile(temporaryKey, image, "image/jpeg", "no-store")),
+      timed("manifest", datasetService.refresh()),
     ]);
 
-    if (!classifierService.isAccepted(check)) {
-      await deleteFile(temporaryKey);
-      return rejected(check?.reason ?? "unreadable");
+    const isDuplicate = datasetService.looksLikeSavedPhoto(visualHash);
+    if (isDuplicate || !classifierService.isAccepted(check)) {
+      deleteFile(temporaryKey).catch((error) =>
+        logger.warn(`Couldn't delete ${temporaryKey}`, error)
+      );
+      return rejected(isDuplicate ? "duplicate" : (check?.reason ?? "unreadable"));
     }
 
     const photo: Photo = {
@@ -47,9 +77,11 @@ class UploadService {
       title: file.name,
       source: "upload",
     };
-    await moveFile(temporaryKey, datasetService.imageKey(photo), "image/jpeg");
-    await datasetService.register(photo);
-    logger.info(`${file.name} accepted into ${photo.category} (${check.confidence.toFixed(2)})`);
+    await timed("move", moveFile(temporaryKey, datasetService.imageKey(photo), "image/jpeg"));
+    await timed("save", datasetService.register(photo));
+    logger.info(
+      `${file.name} accepted into ${photo.category} (${check.confidence.toFixed(2)}) ${summary()}`
+    );
     return { fileName: file.name, accepted: true, category: photo.category };
   }
 }

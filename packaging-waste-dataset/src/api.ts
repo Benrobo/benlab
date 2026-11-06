@@ -1,21 +1,23 @@
-import { categories } from "../config";
 import type { CollectionStatus, PhotoWithUrl, UploadResult } from "../engine/types/dataset.types";
 
-const categoryColors = ["#3b82f6", "#f97316", "#14b8a6", "#eab308", "#ec4899"];
+const uploadSize = 1280;
 
-export const categoryLabel = (id: string) =>
-  categories.find((category) => category.id === id)?.label ?? id;
-
-export const categoryColor = (id: string) =>
-  categoryColors[categories.findIndex((category) => category.id === id)] ?? "#a3a29d";
-
-const rejectionMessages: Record<string, string> = {
-  duplicate: "Already in the dataset",
-  "too-large": "Larger than 5 MB",
-  unreadable: "Couldn't read this photo",
-};
-
-export const rejectionMessage = (reason = "unreadable") => rejectionMessages[reason] ?? reason;
+async function shrinkPhoto(file: File) {
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const scale = Math.min(1, uploadSize / Math.max(bitmap.width, bitmap.height));
+    const canvas = new OffscreenCanvas(
+      Math.round(bitmap.width * scale),
+      Math.round(bitmap.height * scale)
+    );
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await canvas.convertToBlob({ type: "image/jpeg", quality: 0.88 });
+    return new File([blob], file.name, { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
 
 async function readJson<T>(response: Response) {
   if (!response.ok) throw new Error(response.statusText);
@@ -31,9 +33,9 @@ export const api = {
     fetch("/api/collection", { method: "POST" }).then(readJson<CollectionStatus>),
   stopCollecting: () =>
     fetch("/api/collection", { method: "DELETE" }).then(readJson<CollectionStatus>),
-  uploadPhotos: (files: File[]) => {
+  uploadPhotos: async (files: File[]) => {
     const form = new FormData();
-    for (const file of files) form.append("files", file);
+    for (const file of await Promise.all(files.map(shrinkPhoto))) form.append("files", file);
     return fetch("/api/uploads", { method: "POST", body: form }).then(readJson<UploadResult[]>);
   },
   downloadLink: (category: string) => `/api/download?category=${category}`,

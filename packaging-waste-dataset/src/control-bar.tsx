@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 import toast from "react-hot-toast";
 import { categories, perCategory } from "../config";
 import type { CollectionStatus } from "../engine/types/dataset.types";
-import { api, categoryColor } from "./data";
+import { api } from "./api";
+import { categoryColor } from "./categories";
 
 const formatNumber = new Intl.NumberFormat("en").format;
 

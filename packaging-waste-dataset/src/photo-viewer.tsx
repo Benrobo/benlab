@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, ExternalLink, Trash2, X } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import type { PhotoWithUrl } from "../engine/types/dataset.types";
-import { categoryLabel } from "./data";
+import { categoryLabel } from "./categories";
 
 type PhotoViewerProps = {
   photos: PhotoWithUrl[];
