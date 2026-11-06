@@ -9,13 +9,6 @@ import { createLogger } from "./lib/logger";
 
 const logger = createLogger("engine");
 
-const hasMcpToken = (request: Request) => {
-  const token =
-    request.headers.get("authorization")?.replace(/^Bearer /, "") ??
-    new URL(request.url).searchParams.get("token");
-  return Boolean(env.MCP_TOKEN) && token === env.MCP_TOKEN;
-};
-
 const downloadableCategories = new Set(["all", ...categories.map(({ id }) => id)]);
 
 export async function startEngine() {
@@ -66,12 +59,7 @@ export async function startEngine() {
         },
       },
 
-      "/api/mcp": (request) => {
-        if (!hasMcpToken(request)) {
-          return Response.json({ error: "Missing or wrong MCP token" }, { status: 401 });
-        }
-        return handleMcpRequest(request);
-      },
+      "/api/mcp": (request) => handleMcpRequest(request),
 
       "/api/download": {
         GET: async (request) => {
