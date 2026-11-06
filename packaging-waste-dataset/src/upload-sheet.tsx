@@ -1,10 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Camera, Check, Focus, ImageUp, LoaderCircle, Plus, Recycle, UserX, X } from "lucide-react";
+import { Check, ImageUp, LoaderCircle, Plus, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useRef, useState, type DragEvent } from "react";
 import { uploadLimit } from "../config";
 import { api } from "./api";
 import { useCategories } from "./categories";
+import { photoTips } from "./photo-tips";
 import { Sheet, SheetButton } from "./sheet";
 
 const rejectionMessages: Record<string, string> = {
@@ -29,13 +30,6 @@ type Upload = {
 type Step = "choose" | "review" | "checking" | "finished";
 
 const maxMegabytes = uploadLimit.bytes / 1024 / 1024;
-
-const photoTips = [
-  { icon: Camera, text: "Casual phone photo" },
-  { icon: Recycle, text: "Empty or thrown away" },
-  { icon: UserX, text: "No people in the shot" },
-  { icon: Focus, text: "One kind of item" },
-];
 
 function createUpload(file: File): Upload {
   const isTooLarge = file.size > uploadLimit.bytes;

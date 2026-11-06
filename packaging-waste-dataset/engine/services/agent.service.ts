@@ -19,7 +19,7 @@ type NewPhoto = ImageSource & { category: string; reason: string };
 class AgentService {
   async progress() {
     const photos = await datasetService.list();
-    return categoryService.list().map(({ id, label, description }) => {
+    return categoryService.active().map(({ id, label, description }) => {
       const saved = photos.filter((photo) => photo.category === id).length;
       return {
         category: id,
@@ -50,7 +50,8 @@ class AgentService {
   }
 
   async addPhoto({ category, reason, ...source }: NewPhoto) {
-    if (!categoryService.find(category)) return { added: false, problem: "Unknown category" };
+    if (!categoryService.isActive(category))
+      return { added: false, problem: "Unknown or archived category" };
 
     await datasetService.refresh(0);
     if (source.imageUrl && datasetService.hasPhotoFrom(source.imageUrl)) {

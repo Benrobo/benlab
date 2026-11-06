@@ -32,6 +32,12 @@ export type NewCategory = { label: string; description: string; subjects: string
 
 export const api = {
   getCategories: () => fetch("/api/categories").then(readJson<Category[]>),
+  setCategoryArchived: (id: string, archived: boolean) =>
+    fetch(`/api/categories/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ archived }),
+    }).then(readJson<Category>),
   addCategory: (category: NewCategory) =>
     fetch("/api/categories", {
       method: "POST",

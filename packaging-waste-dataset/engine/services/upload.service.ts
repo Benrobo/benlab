@@ -13,7 +13,7 @@ class UploadService {
       logger.info(`${file.name} rejected: ${reason}`);
       return { fileName: file.name, accepted: false, reason };
     };
-    if (!categoryService.find(category)) return rejected("unknown-category");
+    if (!categoryService.isActive(category)) return rejected("unknown-category");
     if (file.size > uploadLimit.bytes) return rejected("too-large");
 
     const image = await imageService
