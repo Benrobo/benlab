@@ -1,6 +1,7 @@
-import { categories, perCategory } from "../../config";
+import { perCategory } from "../../config";
 import { getFile } from "../config/r2";
 import type { Photo } from "../types/dataset.types";
+import { categoryService } from "./category.service";
 import { datasetService } from "./dataset.service";
 import { imageService } from "./image.service";
 import { createLogger } from "../lib/logger";
@@ -19,10 +20,11 @@ type NewPhoto = ImageSource & { category: string; reason: string };
 class AgentService {
   async progress() {
     const photos = await datasetService.list();
-    return categories.map(({ id, label }) => {
+    return categoryService.list().map(({ id, label, description }) => {
       const saved = photos.filter((photo) => photo.category === id).length;
       return {
         category: id,
+        description,
         label,
         saved,
         target: perCategory,
@@ -51,8 +53,7 @@ class AgentService {
   }
 
   async addPhoto({ category, reason, ...source }: NewPhoto) {
-    if (!categories.some(({ id }) => id === category))
-      return { added: false, problem: "Unknown category" };
+    if (!categoryService.find(category)) return { added: false, problem: "Unknown category" };
 
     await datasetService.refresh(0);
     if (datasetService.isCategoryFull(category)) {

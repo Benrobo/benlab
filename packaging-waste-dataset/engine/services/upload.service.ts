@@ -40,6 +40,7 @@ class UploadService {
       return { fileName: file.name, accepted: false, reason };
     };
     if (file.size > uploadLimit.bytes) return rejected("too-large");
+    if (!(await classifierService.hasChecksLeft())) return rejected("daily-limit");
 
     const image = await timed(
       "prepare",

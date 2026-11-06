@@ -1,8 +1,10 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { APICallError, generateText, Output } from "ai";
 import { z } from "zod";
-import { categories } from "../../../config";
+import { aiChecksPerDay } from "../../../config";
 import env from "../../config/env";
+import { redis } from "../../config/redis";
+import { categoryService } from "../category.service";
 import { AI_MODEL_CONFIG } from "./models";
 import { createLogger } from "../../lib/logger";
 
@@ -12,18 +14,17 @@ const minimumConfidence = 0.7;
 
 const statusCodesThatStopEverything = [401, 402, 403];
 
-const categoryIds = categories.map(({ id }) => id) as [string, ...string[]];
+const createPhotoCheckSchema = () =>
+  z.object({
+    category: z
+      .enum(categoryService.ids() as [string, ...string[]])
+      .nullable()
+      .describe("The category the photo belongs to, or null if it should not be in the dataset."),
+    confidence: z.number().describe("How sure you are about this answer, from 0 to 1."),
+    reason: z.string().describe("A short reason for the answer, under 12 words."),
+  });
 
-const photoCheckSchema = z.object({
-  category: z
-    .enum(categoryIds)
-    .nullable()
-    .describe("The category the photo belongs to, or null if it should not be in the dataset."),
-  confidence: z.number().describe("How sure you are about this answer, from 0 to 1."),
-  reason: z.string().describe("A short reason for the answer, under 12 words."),
-});
-
-export type PhotoCheck = z.infer<typeof photoCheckSchema>;
+export type PhotoCheck = z.infer<ReturnType<typeof createPhotoCheckSchema>>;
 
 const rules = [
   "Only the packaging counts, never what it contains.",
@@ -37,27 +38,48 @@ const rules = [
   "Judge each rule only by what is clearly visible, and don't reject a photo over doubts it doesn't show.",
 ];
 
-export const classificationPrompt = `You check photos for a dataset of packaging thrown away in Nigeria.
+export const classificationPrompt =
+  () => `You check photos for a dataset of packaging thrown away in Nigeria.
 
 Categories:
-${categories.map(({ id, description }) => `- ${id}: ${description}`).join("\n")}
+${categoryService
+  .list()
+  .map(({ id, description }) => `- ${id}: ${description}`)
+  .join("\n")}
 
 Give the photo's category only when it follows every rule below, otherwise null:
 ${rules.map((rule) => `- ${rule}`).join("\n")}`;
 
+const checksTodayKey = () => `ai-checks:${new Date().toISOString().slice(0, 10)}`;
+
 class ClassifierService {
   private readonly openrouter = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
 
+  async hasChecksLeft() {
+    return Number(await redis.get(checksTodayKey())) < aiChecksPerDay;
+  }
+
+  private async useCheck() {
+    const key = checksTodayKey();
+    const count = await redis.incr(key);
+    if (count === 1) await redis.expire(key, 2 * 24 * 60 * 60);
+    return count <= aiChecksPerDay;
+  }
+
   async checkPhoto(preview: Buffer, signal?: AbortSignal) {
     const { model, reasoningEffort } = AI_MODEL_CONFIG.imageClassification;
+    if (!(await this.useCheck())) {
+      logger.warn(`Reached the daily limit of ${aiChecksPerDay} AI checks`);
+      return null;
+    }
     try {
       const { output } = await generateText({
         model: this.openrouter(model, {
           reasoning: { effort: reasoningEffort },
           provider: { sort: "latency" },
         }),
-        output: Output.object({ schema: photoCheckSchema, name: "photoCheck" }),
-        system: classificationPrompt,
+        output: Output.object({ schema: createPhotoCheckSchema(), name: "photoCheck" }),
+        system: classificationPrompt(),
         messages: [
           { role: "user", content: [{ type: "file", data: preview, mediaType: "image/jpeg" }] },
         ],

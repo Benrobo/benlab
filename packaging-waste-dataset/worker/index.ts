@@ -1,39 +1,57 @@
-import { Container, getContainer } from "@cloudflare/containers";
+type RateLimit = { limit: (options: { key: string }) => Promise<{ success: boolean }> };
 
 type Env = {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
-  ENGINE: DurableObjectNamespace<Engine>;
-  OPENROUTER_API_KEY: string;
-  BRAVE_SEARCH_API_KEY: string;
-  R2_ACCESS_KEY_ID: string;
-  R2_SECRET_ACCESS_KEY: string;
-  R2_ENDPOINT: string;
-  R2_BUCKET: string;
-  R2_PUBLIC_URL: string;
+  ENGINE_URL: string;
+  UPLOAD_LIMIT: RateLimit;
+  COLLECTION_LIMIT: RateLimit;
+  REMOVE_LIMIT: RateLimit;
+  CATEGORY_LIMIT: RateLimit;
+  API_LIMIT: RateLimit;
 };
 
-export class Engine extends Container<Env> {
-  defaultPort = 5200;
-  sleepAfter = "2h";
+const unlimitedPaths = ["/api/mcp", "/api/download"];
 
-  constructor(ctx: DurableObjectState<Env>, env: Env) {
-    super(ctx, env);
-    this.envVars = {
-      OPENROUTER_API_KEY: env.OPENROUTER_API_KEY,
-      BRAVE_SEARCH_API_KEY: env.BRAVE_SEARCH_API_KEY,
-      R2_ACCESS_KEY_ID: env.R2_ACCESS_KEY_ID,
-      R2_SECRET_ACCESS_KEY: env.R2_SECRET_ACCESS_KEY,
-      R2_ENDPOINT: env.R2_ENDPOINT,
-      R2_BUCKET: env.R2_BUCKET,
-      R2_PUBLIC_URL: env.R2_PUBLIC_URL,
-    };
-  }
+const rateLimits: { limiter: keyof Env; matches: (method: string, path: string) => boolean }[] = [
+  {
+    limiter: "UPLOAD_LIMIT",
+    matches: (method, path) => method === "POST" && path === "/api/uploads",
+  },
+  {
+    limiter: "COLLECTION_LIMIT",
+    matches: (method, path) => method !== "GET" && path === "/api/collection",
+  },
+  {
+    limiter: "REMOVE_LIMIT",
+    matches: (method, path) => method === "DELETE" && path.startsWith("/api/photos/"),
+  },
+  {
+    limiter: "CATEGORY_LIMIT",
+    matches: (method, path) => method === "POST" && path === "/api/categories",
+  },
+  { limiter: "API_LIMIT", matches: () => true },
+];
+
+async function isRateLimited(request: Request, path: string, env: Env) {
+  if (unlimitedPaths.includes(path)) return false;
+  const { limiter } = rateLimits.find(({ matches }) => matches(request.method, path))!;
+  const key = request.headers.get("cf-connecting-ip") ?? "unknown";
+  const { success } = await (env[limiter] as RateLimit).limit({ key });
+  return !success;
 }
 
 export default {
   async fetch(request: Request, env: Env) {
-    const { pathname } = new URL(request.url);
-    if (pathname.startsWith("/api/")) return getContainer(env.ENGINE).fetch(request);
+    const { pathname, search } = new URL(request.url);
+    if (pathname.startsWith("/api/")) {
+      if (await isRateLimited(request, pathname, env)) {
+        return Response.json(
+          { error: "Too many requests, try again in a minute" },
+          { status: 429, headers: { "retry-after": "60" } }
+        );
+      }
+      return fetch(new Request(`${env.ENGINE_URL}${pathname}${search}`, request));
+    }
     if (pathname.startsWith("/.well-known/")) return new Response(null, { status: 404 });
     return env.ASSETS.fetch(request);
   },

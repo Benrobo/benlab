@@ -11,17 +11,17 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*", "/.well-known/*"]
   },
-  "containers": [
-    {
-      "class_name": "Engine",
-      "image": "./Dockerfile",
-      "max_instances": 1,
-      "instance_type": "standard-1"
-    }
+  "vars": { "ENGINE_URL": "ENGINE_URL_PLACEHOLDER" },
+  "ratelimits": [
+    { "name": "UPLOAD_LIMIT", "namespace_id": "1001", "simple": { "limit": 3, "period": 60 } },
+    { "name": "COLLECTION_LIMIT", "namespace_id": "1002", "simple": { "limit": 2, "period": 60 } },
+    { "name": "REMOVE_LIMIT", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } },
+    { "name": "CATEGORY_LIMIT", "namespace_id": "1004", "simple": { "limit": 3, "period": 60 } },
+    { "name": "API_LIMIT", "namespace_id": "1006", "simple": { "limit": 120, "period": 60 } }
   ],
-  "durable_objects": {
-    "bindings": [{ "name": "ENGINE", "class_name": "Engine" }]
-  },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Engine"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Engine"] },
+    { "tag": "v2", "deleted_classes": ["Engine"] }
+  ],
   "routes": [{ "pattern": "packaging-waste-dataset.benlab.space", "custom_domain": true }]
 }

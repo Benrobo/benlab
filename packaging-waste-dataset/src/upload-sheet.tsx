@@ -2,14 +2,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Camera, Check, Focus, ImageUp, LoaderCircle, Plus, Recycle, UserX, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useRef, useState, type DragEvent } from "react";
-import { categories, uploadLimit } from "../config";
+import { uploadLimit } from "../config";
 import { api } from "./api";
-import { categoryColor, categoryLabel } from "./categories";
+import { useCategories } from "./categories";
 import { Sheet, SheetButton } from "./sheet";
 
 const rejectionMessages: Record<string, string> = {
   duplicate: "Already in the dataset",
   "too-large": "Larger than 5 MB",
+  "daily-limit": "Daily check limit reached, try again tomorrow",
   unreadable: "Couldn't read this photo",
 };
 
@@ -52,6 +53,7 @@ const onlyImages = (files: File[]) => files.filter((file) => file.type.startsWit
 type UploadSheetProps = { initialFiles: File[]; onClose: () => void };
 
 export function UploadSheet({ initialFiles, onClose }: UploadSheetProps) {
+  const { categoryLabel } = useCategories();
   const queryClient = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploads, setUploads] = useState<Upload[]>(() =>
@@ -110,16 +112,20 @@ export function UploadSheet({ initialFiles, onClose }: UploadSheetProps) {
       )
     );
 
+    let failure = "The engine didn't respond";
     const results = await api
       .uploadPhotos(readyUploads.map((upload) => upload.file))
-      .catch(() => null);
+      .catch((error: Error) => {
+        failure = error.message;
+        return null;
+      });
 
     setUploads((current) =>
       current.map((upload) => {
         const index = checkingIds.indexOf(upload.id);
         if (index < 0) return upload;
         const result = results?.[index];
-        if (!result) return { ...upload, status: "rejected", message: "The engine didn't respond" };
+        if (!result) return { ...upload, status: "rejected", message: failure };
         return result.accepted
           ? {
               ...upload,
@@ -234,6 +240,7 @@ export function UploadSheet({ initialFiles, onClose }: UploadSheetProps) {
 }
 
 function ChooseStep({ onBrowse }: { onBrowse: () => void }) {
+  const { categories, categoryColor } = useCategories();
   return (
     <>
       <button

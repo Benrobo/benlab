@@ -100,7 +100,7 @@ export function ConnectSheet({ onClose }: { onClose: () => void }) {
           ))}
         </nav>
 
-        <div className="grid">
+        <div className="grid grid-cols-[minmax(0,1fr)]">
           {apps.map((app) => (
             <ol
               key={app.id}
@@ -148,7 +148,7 @@ function CopyBlock({ value, wrap }: { value: string; wrap?: boolean }) {
   };
 
   return (
-    <div className="group relative rounded-xl bg-black/[0.04]">
+    <div className="group relative min-w-0 rounded-xl bg-black/[0.04]">
       <pre
         className={`text-ink-2 px-3 py-2.5 pr-11 text-[12px] leading-relaxed ${wrap ? "font-sans whitespace-pre-wrap" : "overflow-x-auto font-mono"}`}
       >

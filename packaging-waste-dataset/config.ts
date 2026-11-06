@@ -3,21 +3,23 @@ export type Category = {
   label: string;
   description: string;
   subjects: string[];
+  addedAt: number;
 };
-
-export const goal = 1000;
 
 export const perCategory = 334;
 
 export const uploadLimit = { files: 5, bytes: 5 * 1024 * 1024 };
 
+export const aiChecksPerDay = 2000;
+
 export const places = ["", "Nigeria", "Lagos", "Abuja", "nairaland"];
 
-export const categories: Category[] = [
+export const defaultCategories: Category[] = [
   {
     id: "water-bottle",
     label: "Water bottles",
     description: "a plastic water or soft drink bottle",
+    addedAt: 0,
     subjects: [
       "empty plastic water bottle",
       "plastic bottles litter",
@@ -30,6 +32,7 @@ export const categories: Category[] = [
     id: "sachet-water",
     label: "Sachet water",
     description: "a pure water sachet, the small plastic bag of drinking water",
+    addedAt: 1,
     subjects: [
       "empty pure water sachet",
       "pure water nylon litter",
@@ -43,6 +46,7 @@ export const categories: Category[] = [
     label: "Packaged food",
     description:
       "a food wrapper or pack, such as an Indomie nylon, a biscuit wrapper or a snack pack",
+    addedAt: 2,
     subjects: [
       "empty Indomie wrapper",
       "Indomie nylon litter",

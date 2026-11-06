@@ -43,43 +43,6 @@ export async function getFile(key: string) {
   }
 }
 
-export async function getFileWithVersion(key: string) {
-  try {
-    const response = await client.send(new GetObjectCommand({ Bucket: env.R2.bucket, Key: key }));
-    const body = new TextDecoder().decode(await response.Body!.transformToByteArray());
-    return { body, version: response.ETag };
-  } catch (error) {
-    if (error instanceof NoSuchKey) return { body: null, version: undefined };
-    throw error;
-  }
-}
-
-export async function uploadFileIfUnchanged(
-  key: string,
-  body: string,
-  contentType: string,
-  version: string | undefined
-) {
-  try {
-    await client.send(
-      new PutObjectCommand({
-        Bucket: env.R2.bucket,
-        Key: key,
-        Body: body,
-        ContentType: contentType,
-        CacheControl: "no-cache",
-        ...(version ? { IfMatch: version } : { IfNoneMatch: "*" }),
-      })
-    );
-    return true;
-  } catch (error) {
-    const statusCode = (error as { $metadata?: { httpStatusCode?: number } }).$metadata
-      ?.httpStatusCode;
-    if (statusCode === 412) return false;
-    throw error;
-  }
-}
-
 export async function deleteFile(key: string) {
   await client.send(new DeleteObjectCommand({ Bucket: env.R2.bucket, Key: key }));
 }

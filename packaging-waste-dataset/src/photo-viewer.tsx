@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, ExternalLink, Trash2, X } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import type { PhotoWithUrl } from "../engine/types/dataset.types";
-import { categoryLabel } from "./categories";
+import { useCategories } from "./categories";
 
 type PhotoViewerProps = {
   photos: PhotoWithUrl[];
@@ -13,6 +13,7 @@ type PhotoViewerProps = {
 const domainOf = (url: string) => URL.parse(url)?.hostname.replace(/^www\./, "") ?? url;
 
 export function PhotoViewer({ photos, openPhotoId, onOpen, onRemove }: PhotoViewerProps) {
+  const { categoryLabel } = useCategories();
   const index = photos.findIndex((photo) => photo.id === openPhotoId);
   const photo = photos[index];
 

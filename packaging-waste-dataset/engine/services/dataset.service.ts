@@ -1,14 +1,8 @@
 import { downloadZip } from "client-zip";
 import { perCategory } from "../../config";
 import { cachedImagePath } from "../config/paths";
-import {
-  deleteFile,
-  getFile,
-  getFileWithVersion,
-  getPublicUrl,
-  uploadFile,
-  uploadFileIfUnchanged,
-} from "../config/r2";
+import { deleteFile, getFile, getPublicUrl, uploadFile } from "../config/r2";
+import { redis } from "../config/redis";
 import type { Photo, PhotoWithUrl } from "../types/dataset.types";
 import { imageService } from "./image.service";
 import { reviewService } from "./review.service";
@@ -16,26 +10,25 @@ import { createLogger } from "../lib/logger";
 
 const logger = createLogger("dataset");
 
-const manifestKey = "manifest.json";
+const photosKey = "photos";
+const oldManifestKey = "manifest.json";
 const zipFolder = "packaging-waste-dataset";
 const refreshAfterMs = 3000;
-const saveAttempts = 5;
 
 class DatasetService {
   private photos: Photo[] = [];
-  private version: string | undefined;
   private loadedAt = 0;
   private loading: Promise<void> | null = null;
-  private changing = Promise.resolve();
 
   async load() {
+    if (!(await redis.hlen(photosKey))) await this.importOldManifest();
     await this.refresh(0);
-    logger.info(`Loaded ${this.photos.length} photos from R2`);
+    logger.info(`Loaded ${this.photos.length} photos from Redis`);
   }
 
   async refresh(maxAgeMs = refreshAfterMs) {
     if (Date.now() - this.loadedAt < maxAgeMs) return;
-    this.loading ??= this.readManifest().finally(() => (this.loading = null));
+    this.loading ??= this.readPhotos().finally(() => (this.loading = null));
     await this.loading;
   }
 
@@ -52,8 +45,12 @@ class DatasetService {
     return this.photos.map((photo) => ({ ...photo, imageUrl: this.publicUrl(photo) }));
   }
 
+  countIn(category: string) {
+    return this.photos.filter((photo) => photo.category === category).length;
+  }
+
   isCategoryFull(category: string) {
-    return this.photos.filter((photo) => photo.category === category).length >= perCategory;
+    return this.countIn(category) >= perCategory;
   }
 
   hasPhotoFrom(url: string) {
@@ -74,9 +71,8 @@ class DatasetService {
   }
 
   async register(photo: Photo) {
-    await this.changeManifest((photos) =>
-      photos.some((saved) => saved.id === photo.id) ? photos : [...photos, photo]
-    );
+    await redis.hset(photosKey, { [photo.id]: JSON.stringify(photo) });
+    if (!this.photos.some((saved) => saved.id === photo.id)) this.photos.push(photo);
   }
 
   async remove(id: string) {
@@ -87,7 +83,8 @@ class DatasetService {
       return false;
     }
 
-    await this.changeManifest((photos) => photos.filter((saved) => saved.id !== id));
+    await redis.hdel(photosKey, id);
+    this.photos = this.photos.filter((saved) => saved.id !== id);
     await deleteFile(this.imageKey(photo));
     await reviewService.record(
       { id, searchedFor: photo.category, result: "removed", url: photo.url },
@@ -103,34 +100,23 @@ class DatasetService {
     return downloadZip(this.zipEntries(chosen)).body!;
   }
 
-  private async readManifest() {
-    const { body, version } = await getFileWithVersion(manifestKey);
-    const saved = body ? JSON.parse(body) : {};
-    this.photos = saved.photos ?? saved.items ?? [];
-    this.version = version;
+  private async readPhotos() {
+    const saved = await redis.hgetall(photosKey);
+    this.photos = Object.values(saved).map((value) => JSON.parse(value) as Photo);
     this.loadedAt = Date.now();
   }
 
-  private changeManifest(change: (photos: Photo[]) => Photo[]) {
-    const run = async () => {
-      for (let attempt = 1; attempt <= saveAttempts; attempt++) {
-        await this.readManifest();
-        const photos = change(this.photos);
-        const manifest = JSON.stringify({ updatedAt: new Date().toISOString(), photos });
-        if (await uploadFileIfUnchanged(manifestKey, manifest, "application/json", this.version)) {
-          this.photos = photos;
-          this.loadedAt = 0;
-          return;
-        }
-        logger.warn(`Manifest changed in R2 while saving, retrying (${attempt}/${saveAttempts})`);
-      }
-      throw new Error("Couldn't save the manifest to R2 after several attempts");
-    };
-    const result = this.changing.then(run);
-    this.changing = result.catch((error) =>
-      logger.error("Couldn't save the manifest to R2", error)
+  private async importOldManifest() {
+    const manifest = await getFile(oldManifestKey);
+    if (!manifest) return;
+    const saved = JSON.parse(new TextDecoder().decode(manifest));
+    const photos: Photo[] = saved.photos ?? saved.items ?? [];
+    if (!photos.length) return;
+    await redis.hset(
+      photosKey,
+      Object.fromEntries(photos.map((photo) => [photo.id, JSON.stringify(photo)]))
     );
-    return result;
+    logger.info(`Imported ${photos.length} photos from the old R2 manifest`);
   }
 
   private async *zipEntries(chosen: Photo[]) {

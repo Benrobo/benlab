@@ -1,4 +1,4 @@
-import { categories } from "../../config";
+import { categoryService } from "../services/category.service";
 import { collectorService } from "../services/collector.service";
 import type { CategoryJob } from "../types/dataset.types";
 import { defineJob } from "./background-job";
@@ -6,21 +6,28 @@ import { createLogger } from "../lib/logger";
 
 const logger = createLogger("collect");
 
-export const categoryJobs = new Map<string, CategoryJob>(
-  categories.map(({ id }) => [id, { categoryId: id, state: "idle", checked: 0, added: 0 }])
-);
+const maxCategoriesAtOnce = 10;
+
+export const categoryJobs = new Map<string, CategoryJob>();
 
 export const collectCategoryJob = defineJob<{ categoryId: string }>({
   id: "collect-category",
-  concurrency: categories.length,
+  concurrency: maxCategoriesAtOnce,
   maxDurationMs: 2 * 60 * 60_000,
   key: ({ categoryId }) => categoryId,
   run: async ({ categoryId }, signal) => {
-    const category = categories.find(({ id }) => id === categoryId)!;
+    const category = categoryService.find(categoryId);
+    if (!category) return;
     await collectorService.collect(category, categoryJobs.get(categoryId)!, signal);
   },
   onStart: ({ categoryId }) => {
-    categoryJobs.get(categoryId)!.state = "running";
+    const job = categoryJobs.get(categoryId) ?? {
+      categoryId,
+      state: "running",
+      checked: 0,
+      added: 0,
+    };
+    categoryJobs.set(categoryId, { ...job, state: "running" });
     logger.info(`${categoryId} started`);
   },
   onFinish: ({ categoryId }, outcome) => {
