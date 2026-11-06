@@ -2,7 +2,7 @@ import { downloadZip } from "client-zip";
 import { perCategory } from "../../config";
 import { cachedImagePath } from "../config/paths";
 import { deleteFile, getFile, getPublicUrl, uploadFile } from "../config/r2";
-import { redis } from "../config/redis";
+import { redis, redisKey } from "../config/redis";
 import type { Photo, PhotoWithUrl } from "../types/dataset.types";
 import { imageService } from "./image.service";
 import { reviewService } from "./review.service";
@@ -10,7 +10,7 @@ import { createLogger } from "../lib/logger";
 
 const logger = createLogger("dataset");
 
-const photosKey = "photos";
+const photosKey = redisKey("photos");
 const oldManifestKey = "manifest.json";
 const zipFolder = "packaging-waste-dataset";
 const refreshAfterMs = 3000;

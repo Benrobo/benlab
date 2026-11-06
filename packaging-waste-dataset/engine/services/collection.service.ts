@@ -21,17 +21,15 @@ class CollectionService {
   }
 
   status(): CollectionStatus {
-    const jobs = categoryService
-      .ids()
-      .map(
-        (categoryId) =>
-          categoryJobs.get(categoryId) ?? {
-            categoryId,
-            state: "idle" as const,
-            checked: 0,
-            added: 0,
-          }
-      );
+    const jobs = categoryService.ids().map(
+      (categoryId) =>
+        categoryJobs.get(categoryId) ?? {
+          categoryId,
+          state: "idle" as const,
+          checked: 0,
+          added: 0,
+        }
+    );
     return { running: jobs.some(({ state }) => state === "queued" || state === "running"), jobs };
   }
 }
