@@ -37,7 +37,7 @@ const rules = [
   "Judge each rule only by what is clearly visible, and don't reject a photo over doubts it doesn't show.",
 ];
 
-const instructions = `You check photos for a dataset of packaging thrown away in Nigeria.
+export const classificationPrompt = `You check photos for a dataset of packaging thrown away in Nigeria.
 
 Categories:
 ${categories.map(({ id, description }) => `- ${id}: ${description}`).join("\n")}
@@ -57,7 +57,7 @@ class ClassifierService {
           provider: { sort: "latency" },
         }),
         output: Output.object({ schema: photoCheckSchema, name: "photoCheck" }),
-        system: instructions,
+        system: classificationPrompt,
         messages: [
           { role: "user", content: [{ type: "file", data: preview, mediaType: "image/jpeg" }] },
         ],

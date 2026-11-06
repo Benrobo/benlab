@@ -1,5 +1,6 @@
 import { categories, uploadLimit } from "../config";
 import env from "./config/env";
+import { handleMcpRequest } from "./mcp";
 import { collectionService } from "./services/collection.service";
 import { datasetService } from "./services/dataset.service";
 import { reviewService } from "./services/review.service";
@@ -7,6 +8,13 @@ import { uploadService } from "./services/upload.service";
 import { createLogger } from "./lib/logger";
 
 const logger = createLogger("engine");
+
+const hasMcpToken = (request: Request) => {
+  const token =
+    request.headers.get("authorization")?.replace(/^Bearer /, "") ??
+    new URL(request.url).searchParams.get("token");
+  return Boolean(env.MCP_TOKEN) && token === env.MCP_TOKEN;
+};
 
 const downloadableCategories = new Set(["all", ...categories.map(({ id }) => id)]);
 
@@ -56,6 +64,13 @@ export async function startEngine() {
           }
           return Response.json(await Promise.all(files.map((file) => uploadService.upload(file))));
         },
+      },
+
+      "/api/mcp": (request) => {
+        if (!hasMcpToken(request)) {
+          return Response.json({ error: "Missing or wrong MCP token" }, { status: 401 });
+        }
+        return handleMcpRequest(request);
       },
 
       "/api/download": {

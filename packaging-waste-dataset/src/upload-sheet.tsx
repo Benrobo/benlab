@@ -1,10 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Camera, Check, Focus, ImageUp, LoaderCircle, Plus, Recycle, UserX, X } from "lucide-react";
 import { motion } from "motion/react";
-import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { useRef, useState, type DragEvent } from "react";
 import { categories, uploadLimit } from "../config";
 import { api } from "./api";
 import { categoryColor, categoryLabel } from "./categories";
+import { Sheet, SheetButton } from "./sheet";
 
 const rejectionMessages: Record<string, string> = {
   duplicate: "Already in the dataset",
@@ -133,14 +134,6 @@ export function UploadSheet({ initialFiles, onClose }: UploadSheetProps) {
     queryClient.invalidateQueries({ queryKey: ["photos"] });
   };
 
-  useEffect(() => {
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  });
-
   const handleDrop = (event: DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -155,120 +148,88 @@ export function UploadSheet({ initialFiles, onClose }: UploadSheetProps) {
   }[step];
 
   return (
-    <>
-      <motion.div
-        className="fixed inset-0 z-40 bg-black/25 backdrop-blur-[2px]"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={close}
-      />
+    <Sheet
+      title="Add photos"
+      subtitle={subtitle}
+      onClose={close}
+      canClose={!isChecking}
+      onDrop={handleDrop}
+    >
+      <div className="px-5">
+        {step === "choose" && <ChooseStep onBrowse={() => fileInput.current?.click()} />}
 
-      <motion.section
-        role="dialog"
-        aria-label="Add photos"
-        className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-lg rounded-t-[28px] bg-white shadow-[0_-24px_60px_-24px_rgba(0,0,0,0.35)]"
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", stiffness: 420, damping: 40 }}
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={handleDrop}
-      >
-        <div className="mx-auto mt-2.5 h-1 w-9 rounded-full bg-black/10" />
-
-        <header className="flex items-start justify-between gap-4 px-5 pt-3 pb-4">
-          <div>
-            <h2 className="text-[15px] font-semibold tracking-tight">Add photos</h2>
-            <p className="text-ink-2 mt-0.5 text-[12.5px] tabular-nums">{subtitle}</p>
-          </div>
-          <button
-            onClick={close}
-            disabled={isChecking}
-            aria-label="Close"
-            title="Close"
-            className="text-ink-2 hover:text-ink grid size-8 place-items-center rounded-full bg-black/[0.04] transition hover:bg-black/[0.08] disabled:opacity-30"
-          >
-            <X className="size-4" />
-          </button>
-        </header>
-
-        <div className="px-5">
-          {step === "choose" && <ChooseStep onBrowse={() => fileInput.current?.click()} />}
-
-          {(step === "review" || step === "checking") && (
-            <div className="grid grid-cols-5 gap-2 pb-5">
-              {uploads.map((upload) => (
-                <UploadThumbnail
-                  key={upload.id}
-                  upload={upload}
-                  onRemove={step === "review" ? () => removeUpload(upload.id) : undefined}
-                />
-              ))}
-              {step === "review" && uploads.length < uploadLimit.files && (
-                <button
-                  onClick={() => fileInput.current?.click()}
-                  aria-label="Add more"
-                  title="Add more"
-                  className="text-ink-3 hover:border-ink/25 hover:text-ink grid aspect-square place-items-center rounded-xl border-2 border-dashed border-black/10 transition"
-                >
-                  <Plus className="size-4" />
-                </button>
-              )}
-            </div>
-          )}
-
-          {step === "finished" && (
-            <ul className="space-y-1 pb-4">
-              {uploads.map((upload) => (
-                <UploadResultRow key={upload.id} upload={upload} />
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {step !== "choose" && (
-          <footer className="flex items-center justify-end gap-2 border-t border-black/[0.05] px-5 py-3.5">
-            {step === "finished" ? (
-              <>
-                <SheetButton onClick={startOver}>Add more</SheetButton>
-                <SheetButton onClick={close} primary>
-                  Done
-                </SheetButton>
-              </>
-            ) : (
-              <>
-                <SheetButton onClick={startOver} disabled={isChecking}>
-                  Clear
-                </SheetButton>
-                <SheetButton
-                  onClick={checkUploads}
-                  disabled={isChecking || !readyUploads.length}
-                  primary
-                >
-                  {isChecking && <LoaderCircle className="size-4 animate-spin" />}
-                  {isChecking
-                    ? "Checking"
-                    : `Check ${readyUploads.length} ${readyUploads.length === 1 ? "photo" : "photos"}`}
-                </SheetButton>
-              </>
+        {(step === "review" || step === "checking") && (
+          <div className="grid grid-cols-5 gap-2 pb-5">
+            {uploads.map((upload) => (
+              <UploadThumbnail
+                key={upload.id}
+                upload={upload}
+                onRemove={step === "review" ? () => removeUpload(upload.id) : undefined}
+              />
+            ))}
+            {step === "review" && uploads.length < uploadLimit.files && (
+              <button
+                onClick={() => fileInput.current?.click()}
+                aria-label="Add more"
+                title="Add more"
+                className="text-ink-3 hover:border-ink/25 hover:text-ink grid aspect-square place-items-center rounded-xl border-2 border-dashed border-black/10 transition"
+              >
+                <Plus className="size-4" />
+              </button>
             )}
-          </footer>
+          </div>
         )}
 
-        <input
-          ref={fileInput}
-          type="file"
-          accept="image/*"
-          multiple
-          hidden
-          onChange={(event) => {
-            addFiles([...(event.target.files ?? [])]);
-            event.target.value = "";
-          }}
-        />
-      </motion.section>
-    </>
+        {step === "finished" && (
+          <ul className="space-y-1 pb-4">
+            {uploads.map((upload) => (
+              <UploadResultRow key={upload.id} upload={upload} />
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {step !== "choose" && (
+        <footer className="flex items-center justify-end gap-2 border-t border-black/[0.05] px-5 py-3.5">
+          {step === "finished" ? (
+            <>
+              <SheetButton onClick={startOver}>Add more</SheetButton>
+              <SheetButton onClick={close} primary>
+                Done
+              </SheetButton>
+            </>
+          ) : (
+            <>
+              <SheetButton onClick={startOver} disabled={isChecking}>
+                Clear
+              </SheetButton>
+              <SheetButton
+                onClick={checkUploads}
+                disabled={isChecking || !readyUploads.length}
+                primary
+              >
+                {isChecking && <LoaderCircle className="size-4 animate-spin" />}
+                {isChecking
+                  ? "Checking"
+                  : `Check ${readyUploads.length} ${readyUploads.length === 1 ? "photo" : "photos"}`}
+              </SheetButton>
+            </>
+          )}
+        </footer>
+      )}
+
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={(event) => {
+          addFiles([...(event.target.files ?? [])]);
+          event.target.value = "";
+        }}
+      />
+    </Sheet>
   );
 }
 
@@ -366,28 +327,5 @@ function UploadResultRow({ upload }: { upload: Upload }) {
         )}
       </motion.span>
     </li>
-  );
-}
-
-type SheetButtonProps = {
-  onClick: () => void;
-  disabled?: boolean;
-  primary?: boolean;
-  children: ReactNode;
-};
-
-function SheetButton({ onClick, disabled, primary, children }: SheetButtonProps) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={
-        primary
-          ? "bg-ink flex h-10 items-center gap-2 rounded-full px-5 text-[13px] font-medium text-white transition hover:bg-black disabled:opacity-40"
-          : "text-ink-2 hover:text-ink h-10 rounded-full px-4 text-[13px] font-medium transition hover:bg-black/[0.04] disabled:opacity-30"
-      }
-    >
-      {children}
-    </button>
   );
 }

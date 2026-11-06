@@ -43,9 +43,13 @@ class DatasetService {
     return `images/${photo.category}/${photo.id}.jpg`;
   }
 
+  publicUrl(photo: Photo) {
+    return getPublicUrl(this.imageKey(photo));
+  }
+
   async list(): Promise<PhotoWithUrl[]> {
     await this.refresh();
-    return this.photos.map((photo) => ({ ...photo, imageUrl: getPublicUrl(this.imageKey(photo)) }));
+    return this.photos.map((photo) => ({ ...photo, imageUrl: this.publicUrl(photo) }));
   }
 
   isCategoryFull(category: string) {

@@ -7,7 +7,8 @@ export type Photo = {
   url: string;
   page?: string;
   title?: string;
-  source: "search" | "upload";
+  reason?: string;
+  source: "search" | "upload" | "agent";
 };
 
 export type PhotoWithUrl = Photo & { imageUrl: string };
