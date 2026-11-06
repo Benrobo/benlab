@@ -2,7 +2,7 @@ import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Trash2 } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { PhotoWithUrl } from "../engine/types/dataset.types";
-import { categoryColor, categoryLabel } from "./data";
+import { categoryColor, categoryLabel } from "./categories";
 
 const tileSize = 170;
 const gap = 8;

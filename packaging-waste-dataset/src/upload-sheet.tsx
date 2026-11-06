@@ -3,7 +3,16 @@ import { Camera, Check, Focus, ImageUp, LoaderCircle, Plus, Recycle, UserX, X } 
 import { motion } from "motion/react";
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { categories, uploadLimit } from "../config";
-import { api, categoryColor, categoryLabel, rejectionMessage } from "./data";
+import { api } from "./api";
+import { categoryColor, categoryLabel } from "./categories";
+
+const rejectionMessages: Record<string, string> = {
+  duplicate: "Already in the dataset",
+  "too-large": "Larger than 5 MB",
+  unreadable: "Couldn't read this photo",
+};
+
+const rejectionMessage = (reason = "unreadable") => rejectionMessages[reason] ?? reason;
 
 type UploadStatus = "ready" | "too-large" | "checking" | "accepted" | "rejected";
 
