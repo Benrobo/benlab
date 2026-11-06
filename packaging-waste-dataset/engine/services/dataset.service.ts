@@ -1,6 +1,5 @@
 import dayjs from "dayjs";
 import { downloadZip } from "client-zip";
-import { perCategory } from "../../config";
 import { cachedImagePath } from "../config/paths";
 import { deleteFile, getFile, getPublicUrl, uploadFile } from "../config/r2";
 import { redis, redisKey } from "../config/redis";
@@ -44,14 +43,6 @@ class DatasetService {
   async list(): Promise<PhotoWithUrl[]> {
     await this.refresh();
     return this.photos.map((photo) => ({ ...photo, imageUrl: this.publicUrl(photo) }));
-  }
-
-  countIn(category: string) {
-    return this.photos.filter((photo) => photo.category === category).length;
-  }
-
-  isCategoryFull(category: string) {
-    return this.countIn(category) >= perCategory;
   }
 
   hasPhotoFrom(url: string) {

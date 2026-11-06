@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CircleCheck, Download, ImageUp, Play, ScanSearch, Square } from "lucide-react";
 import type { ReactNode } from "react";
 import toast from "react-hot-toast";
-import { perCategory } from "../config";
 import type { CollectionStatus } from "../engine/types/dataset.types";
 import { api } from "./api";
 import { useCategories } from "./categories";
@@ -58,14 +57,18 @@ export function ControlBar({
         </button>
 
         <div className="flex items-center gap-3 px-3">
-          {categories.map(({ id, label }) => {
+          {categories.map(({ id, label }, _, all) => {
+            const largestCount = Math.max(
+              1,
+              ...all.map((category) => photoCounts.get(category.id) ?? 0)
+            );
             const count = photoCounts.get(id) ?? 0;
             const isRunning =
               collection?.jobs.find((job) => job.categoryId === id)?.state === "running";
             return (
               <div
                 key={id}
-                title={`${label} ${formatNumber(count)} / ${formatNumber(perCategory)}`}
+                title={`${label} ${formatNumber(count)}`}
                 className="flex items-center gap-2"
               >
                 <span
@@ -76,7 +79,7 @@ export function ControlBar({
                   <span
                     className="block h-full rounded-full transition-[width] duration-700"
                     style={{
-                      width: `${Math.min(100, (count / perCategory) * 100)}%`,
+                      width: `${(count / largestCount) * 100}%`,
                       background: categoryColor(id),
                     }}
                   />

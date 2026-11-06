@@ -8,7 +8,7 @@ Collects casual photos of packaging waste in Nigeria for data annotation, sorted
 | `sachet-water`  | Pure water sachets                                         |
 | `packaged-food` | Food wrappers and packs (Indomie nylons, biscuits, snacks) |
 
-The goal is 1000 photos (334 per category). A photo is kept only if it shows one dominant item (at most 4) of a single category. It must be not in use, attached to anything or for sale, have no people in it, and not be an ad, a product shot or a design.
+There is no limit on how many photos the dataset or a category can have. A photo is kept only if it shows one dominant item (at most 4) of a single category. It must be not in use, attached to anything or for sale, have no people in it, and not be an ad, a product shot or a design.
 
 Live at https://packaging-waste-dataset.benlab.space
 
@@ -81,7 +81,7 @@ Connect with just that URL, no token needed. The robot button in the UI shows ho
 ## Structure
 
 ```
-config.ts                 categories, goal, upload limits
+config.ts                 default categories, upload limits, engine URL
 engine/
   server.ts               routes
   mcp.ts                  MCP server and tools for AI agents
