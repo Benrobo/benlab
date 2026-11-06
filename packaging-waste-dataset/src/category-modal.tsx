@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import toast from "react-hot-toast";
 import type { Category } from "../config";
-import { getAdminToken, useHasAdminToken } from "./admin-token";
+import { useHasAdminToken } from "./admin-token";
+import { AdminTokenForm, tokenSubtitle, tokenTitle } from "./admin-token-modal";
 import { api } from "./api";
 import { useCategories } from "./categories";
 import { Modal, ModalButton } from "./modal";
@@ -16,7 +17,7 @@ type CategoryModalProps = { photoCounts: Map<string, number>; onClose: () => voi
 export function CategoryModal({ photoCounts, onClose }: CategoryModalProps) {
   const { allCategories } = useCategories();
   const isAdmin = useHasAdminToken();
-  const [view, setView] = useState<"list" | "add" | Category>("list");
+  const [view, setView] = useState<"list" | "add" | "token" | Category>("list");
   const backToList = () => setView("list");
 
   const activeCategories = allCategories.filter(({ archived }) => !archived);
@@ -25,19 +26,31 @@ export function CategoryModal({ photoCounts, onClose }: CategoryModalProps) {
   return (
     <Modal
       title={
-        view === "list" ? "Categories" : view === "add" ? "New category" : `Edit ${view.label}`
+        view === "list"
+          ? "Categories"
+          : view === "add"
+            ? "New category"
+            : view === "token"
+              ? tokenTitle
+              : `Edit ${view.label}`
       }
       subtitle={
-        view === "list"
-          ? isAdmin
-            ? "Add new kinds of packaging waste, edit them, or archive ones you no longer collect"
-            : "The kinds of packaging waste in the dataset"
-          : "Only kinds of packaging waste, described plainly"
+        view === "token"
+          ? tokenSubtitle
+          : view === "list"
+            ? isAdmin
+              ? "Add new kinds of packaging waste, edit them, or archive ones you no longer collect"
+              : "The kinds of packaging waste in the dataset"
+            : "Only kinds of packaging waste, described plainly"
       }
       onClose={onClose}
     >
       <AnimatePresence mode="wait" initial={false}>
-        {view !== "list" ? (
+        {view === "token" ? (
+          <Slide key="token" direction={1}>
+            <AdminTokenForm onDone={backToList} onCancel={backToList} />
+          </Slide>
+        ) : view !== "list" ? (
           <Slide key={view === "add" ? "add" : view.id} direction={1}>
             <CategoryForm category={view === "add" ? undefined : view} onBack={backToList} />
           </Slide>
@@ -71,7 +84,7 @@ export function CategoryModal({ photoCounts, onClose }: CategoryModalProps) {
                   New category
                 </ModalButton>
               ) : (
-                <ModalButton onClick={() => getAdminToken()} primary>
+                <ModalButton onClick={() => setView("token")} primary>
                   <KeyRound className="size-4" />
                   Enter admin token
                 </ModalButton>
