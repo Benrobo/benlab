@@ -4,26 +4,22 @@ import toast from "react-hot-toast";
 import { Sheet, SheetButton } from "./sheet";
 
 const serverName = "packaging-waste-dataset";
-const tokenStorageKey = "mcp-token";
 const examplePrompt =
   "Check which categories in the packaging waste dataset still need photos, then find casual photos taken in Nigeria for each of them and add the ones that follow the guidelines.";
 
 type App = {
   id: string;
   label: string;
-  steps: (links: { url: string; urlWithToken: string; token: string }) => {
-    text: string;
-    copy?: string;
-  }[];
+  steps: (url: string) => { text: string; copy?: string }[];
 };
 
 const apps: App[] = [
   {
     id: "claude",
     label: "Claude",
-    steps: ({ urlWithToken }) => [
+    steps: (url) => [
       { text: "In Claude, open Settings, then Connectors, then Add custom connector." },
-      { text: `Name it ${serverName} and paste this URL.`, copy: urlWithToken },
+      { text: `Name it ${serverName} and paste this URL.`, copy: url },
       {
         text: "In a chat, turn the connector on from the tools menu and ask it to collect photos.",
       },
@@ -32,13 +28,13 @@ const apps: App[] = [
   {
     id: "chatgpt",
     label: "ChatGPT",
-    steps: ({ urlWithToken }) => [
+    steps: (url) => [
       {
         text: "In ChatGPT, open Settings, then Apps, then Advanced settings, and turn on Developer mode.",
       },
       {
         text: "Create an app, paste this URL as the MCP server URL and pick No authentication.",
-        copy: urlWithToken,
+        copy: url,
       },
       { text: "In a new chat, pick Developer mode, add the app and ask it to collect photos." },
     ],
@@ -46,10 +42,10 @@ const apps: App[] = [
   {
     id: "claude-code",
     label: "Claude Code",
-    steps: ({ url, token }) => [
+    steps: (url) => [
       {
         text: "Run this in your terminal.",
-        copy: `claude mcp add --transport http ${serverName} ${url} --header "Authorization: Bearer ${token}"`,
+        copy: `claude mcp add --transport http ${serverName} ${url}`,
       },
       { text: "Start Claude Code and ask it to collect photos." },
     ],
@@ -57,32 +53,20 @@ const apps: App[] = [
   {
     id: "other",
     label: "Other",
-    steps: ({ url, token }) => [
+    steps: (url) => [
       {
         text: "Add this to your app's MCP config, for example in Cursor or Windsurf.",
-        copy: JSON.stringify(
-          { mcpServers: { [serverName]: { url, headers: { Authorization: `Bearer ${token}` } } } },
-          null,
-          2
-        ),
+        copy: JSON.stringify({ mcpServers: { [serverName]: { url } } }, null, 2),
       },
     ],
   },
 ];
 
 export function ConnectSheet({ onClose }: { onClose: () => void }) {
-  const [token, setToken] = useState(() => localStorage.getItem(tokenStorageKey) ?? "");
   const [appId, setAppId] = useState(apps[0]!.id);
 
   const url = `${location.origin}/api/mcp`;
-  const shownToken = token.trim() || "YOUR_TOKEN";
-  const links = { url, token: shownToken, urlWithToken: `${url}?token=${shownToken}` };
   const app = apps.find(({ id }) => id === appId)!;
-
-  const saveToken = (value: string) => {
-    setToken(value);
-    localStorage.setItem(tokenStorageKey, value.trim());
-  };
 
   return (
     <Sheet
@@ -95,18 +79,6 @@ export function ConnectSheet({ onClose }: { onClose: () => void }) {
           The agent searches the web, looks at each photo itself and adds the ones that follow the
           same rules our classifier uses.
         </p>
-
-        <label className="block">
-          <span className="text-ink-2 text-[12px] font-medium">Access token</span>
-          <input
-            value={token}
-            onChange={(event) => saveToken(event.target.value)}
-            placeholder="Ask the dataset owner for one"
-            spellCheck={false}
-            autoComplete="off"
-            className="text-ink placeholder:text-ink-3 mt-1 h-10 w-full rounded-xl bg-black/[0.04] px-3 font-mono text-[12.5px] outline-none focus:bg-black/[0.06]"
-          />
-        </label>
 
         <nav className="flex gap-0.5 rounded-full bg-black/[0.04] p-[3px]">
           {apps.map(({ id, label }) => (
@@ -121,7 +93,7 @@ export function ConnectSheet({ onClose }: { onClose: () => void }) {
         </nav>
 
         <ol className="space-y-3">
-          {app.steps(links).map((step, index) => (
+          {app.steps(url).map((step, index) => (
             <li key={step.text} className="flex gap-3">
               <span className="text-ink-2 grid size-5 shrink-0 place-items-center rounded-full bg-black/[0.05] text-[11px] font-semibold tabular-nums">
                 {index + 1}

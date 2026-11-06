@@ -16,7 +16,6 @@ const env = {
   PORT: Number(Bun.env.ENGINE_PORT ?? 5200),
   OPENROUTER_API_KEY: Bun.env.OPENROUTER_API_KEY!,
   BRAVE_SEARCH_API_KEY: Bun.env.BRAVE_SEARCH_API_KEY ?? "",
-  MCP_TOKEN: Bun.env.MCP_TOKEN ?? "",
   R2: {
     accessKeyId: Bun.env.R2_ACCESS_KEY_ID!,
     secretAccessKey: Bun.env.R2_SECRET_ACCESS_KEY!,

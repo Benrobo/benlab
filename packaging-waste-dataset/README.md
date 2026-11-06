@@ -35,7 +35,6 @@ The UI runs on http://localhost:5199 and the engine on port 5200.
 | Variable               | Purpose                                      |
 | ---------------------- | -------------------------------------------- |
 | `OPENROUTER_API_KEY`   | Classification                               |
-| `MCP_TOKEN`            | Access token for the MCP server              |
 | `BRAVE_SEARCH_API_KEY` | Brave image search (optional)                |
 | `R2_ACCESS_KEY_ID`     | R2 credentials                               |
 | `R2_SECRET_ACCESS_KEY` | R2 credentials                               |
@@ -77,7 +76,7 @@ AI agents like Claude or ChatGPT can collect photos themselves through the MCP s
 | `add_photo`      | Add a photo with its category and a reason                        |
 | `remove_photo`   | Remove a photo that breaks the rules                              |
 
-Every request needs the `MCP_TOKEN`, sent as `Authorization: Bearer <token>` or as `?token=<token>` for apps that only take a URL. The robot button in the UI shows how to connect Claude, ChatGPT, Claude Code and other MCP clients.
+Connect with just the URL `https://packaging-waste-dataset.benlab.space/api/mcp`, no token needed. The robot button in the UI shows how to connect Claude, ChatGPT, Claude Code and other MCP clients.
 
 ## Structure
 
