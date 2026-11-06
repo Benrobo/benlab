@@ -14,7 +14,6 @@
   "vars": { "ENGINE_URL": "https://packaging-waste-dataset.api.benlab.space" },
   "ratelimits": [
     { "name": "UPLOAD_LIMIT", "namespace_id": "1001", "simple": { "limit": 3, "period": 60 } },
-    { "name": "COLLECTION_LIMIT", "namespace_id": "1002", "simple": { "limit": 2, "period": 60 } },
     { "name": "REMOVE_LIMIT", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } },
     { "name": "CATEGORY_LIMIT", "namespace_id": "1004", "simple": { "limit": 3, "period": 60 } },
     { "name": "API_LIMIT", "namespace_id": "1006", "simple": { "limit": 120, "period": 60 } }

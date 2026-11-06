@@ -45,7 +45,7 @@ export function CategorySheet({ onClose }: { onClose: () => void }) {
             autoFocus
           />
         </Field>
-        <Field label="What counts" hint="The classifier and AI agents judge photos by this">
+        <Field label="What counts" hint="People and AI agents label photos by this">
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}

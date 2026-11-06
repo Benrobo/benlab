@@ -4,7 +4,6 @@ type Env = {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
   ENGINE_URL: string;
   UPLOAD_LIMIT: RateLimit;
-  COLLECTION_LIMIT: RateLimit;
   REMOVE_LIMIT: RateLimit;
   CATEGORY_LIMIT: RateLimit;
   API_LIMIT: RateLimit;
@@ -16,10 +15,6 @@ const rateLimits: { limiter: keyof Env; matches: (method: string, path: string) 
   {
     limiter: "UPLOAD_LIMIT",
     matches: (method, path) => method === "POST" && path === "/api/uploads",
-  },
-  {
-    limiter: "COLLECTION_LIMIT",
-    matches: (method, path) => method !== "GET" && path === "/api/collection",
   },
   {
     limiter: "REMOVE_LIMIT",

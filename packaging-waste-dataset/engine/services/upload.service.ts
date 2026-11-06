@@ -1,7 +1,6 @@
 import { uploadLimit } from "../../config";
-import { deleteFile, moveFile, uploadFile } from "../config/r2";
 import type { Photo, UploadResult } from "../types/dataset.types";
-import { classifierService } from "./ai/classifier.service";
+import { categoryService } from "./category.service";
 import { datasetService } from "./dataset.service";
 import { imageService } from "./image.service";
 import { createLogger } from "../lib/logger";
@@ -9,68 +8,27 @@ import { createLogger } from "../lib/logger";
 const logger = createLogger("upload");
 
 class UploadService {
-  private activeUploads = 0;
-
-  async waitUntilIdle() {
-    while (this.activeUploads) await Bun.sleep(250);
-  }
-
-  async upload(file: File) {
-    this.activeUploads++;
-    try {
-      return await this.check(file);
-    } finally {
-      this.activeUploads--;
-    }
-  }
-
-  private async check(file: File): Promise<UploadResult> {
-    const startedAt = performance.now();
-    const timings: string[] = [];
-    const timed = async <T>(step: string, work: Promise<T>) => {
-      const stepStartedAt = performance.now();
-      const result = await work;
-      timings.push(`${step} ${Math.round(performance.now() - stepStartedAt)}ms`);
-      return result;
-    };
-    const summary = () =>
-      `in ${Math.round(performance.now() - startedAt)}ms (${timings.join(", ")})`;
+  async upload(file: File, category: string): Promise<UploadResult> {
     const rejected = (reason: string): UploadResult => {
-      logger.info(`${file.name} rejected ${summary()}: ${reason}`);
+      logger.info(`${file.name} rejected: ${reason}`);
       return { fileName: file.name, accepted: false, reason };
     };
+    if (!categoryService.find(category)) return rejected("unknown-category");
     if (file.size > uploadLimit.bytes) return rejected("too-large");
-    if (!(await classifierService.hasChecksLeft())) return rejected("daily-limit");
 
-    const image = await timed(
-      "prepare",
-      imageService.prepare(Buffer.from(await file.arrayBuffer())).catch(() => null)
-    );
+    const image = await imageService
+      .prepare(Buffer.from(await file.arrayBuffer()))
+      .catch(() => null);
     if (!image) return rejected("unreadable");
 
-    const { width, height, preview, visualHash } = await timed(
-      "describe",
-      imageService.describe(image)
-    );
+    const { width, height, visualHash } = await imageService.describe(image);
+    await datasetService.refresh(0);
+    if (datasetService.looksLikeSavedPhoto(visualHash)) return rejected("duplicate");
+
     const id = imageService.createId(image);
-    const temporaryKey = `tmp/${id}.jpg`;
-    const [check] = await Promise.all([
-      timed("check", classifierService.checkPhoto(preview)),
-      timed("tmp upload", uploadFile(temporaryKey, image, "image/jpeg", "no-store")),
-      timed("manifest", datasetService.refresh()),
-    ]);
-
-    const isDuplicate = datasetService.looksLikeSavedPhoto(visualHash);
-    if (isDuplicate || !classifierService.isAccepted(check)) {
-      deleteFile(temporaryKey).catch((error) =>
-        logger.warn(`Couldn't delete ${temporaryKey}`, error)
-      );
-      return rejected(isDuplicate ? "duplicate" : (check?.reason ?? "unreadable"));
-    }
-
     const photo: Photo = {
       id,
-      category: check.category,
+      category,
       width,
       height,
       hash: visualHash,
@@ -78,12 +36,9 @@ class UploadService {
       title: file.name,
       source: "upload",
     };
-    await timed("move", moveFile(temporaryKey, datasetService.imageKey(photo), "image/jpeg"));
-    await timed("save", datasetService.register(photo));
-    logger.info(
-      `${file.name} accepted into ${photo.category} (${check.confidence.toFixed(2)}) ${summary()}`
-    );
-    return { fileName: file.name, accepted: true, category: photo.category };
+    await datasetService.add(photo, image);
+    logger.info(`${file.name} added to ${category}`);
+    return { fileName: file.name, accepted: true, category };
   }
 }
 
