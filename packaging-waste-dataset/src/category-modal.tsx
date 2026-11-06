@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Archive, ArchiveRestore, LoaderCircle, Plus } from "lucide-react";
+import { Archive, ArchiveRestore, LoaderCircle, Pencil, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import toast from "react-hot-toast";
@@ -14,43 +14,54 @@ type CategoryModalProps = { photoCounts: Map<string, number>; onClose: () => voi
 
 export function CategoryModal({ photoCounts, onClose }: CategoryModalProps) {
   const { allCategories } = useCategories();
-  const [isAdding, setIsAdding] = useState(false);
+  const [view, setView] = useState<"list" | "add" | Category>("list");
+  const backToList = () => setView("list");
 
   const activeCategories = allCategories.filter(({ archived }) => !archived);
   const archivedCategories = allCategories.filter(({ archived }) => archived);
 
   return (
     <Modal
-      title={isAdding ? "New category" : "Categories"}
+      title={
+        view === "list" ? "Categories" : view === "add" ? "New category" : `Edit ${view.label}`
+      }
       subtitle={
-        isAdding
-          ? "A new kind of packaging waste to collect"
-          : "Add new kinds of packaging waste, or archive ones you no longer collect"
+        view === "list"
+          ? "Add new kinds of packaging waste, edit them, or archive ones you no longer collect"
+          : "Only kinds of packaging waste, described plainly"
       }
       onClose={onClose}
     >
       <AnimatePresence mode="wait" initial={false}>
-        {isAdding ? (
-          <Slide key="add" direction={1}>
-            <AddCategory onBack={() => setIsAdding(false)} />
+        {view !== "list" ? (
+          <Slide key={view === "add" ? "add" : view.id} direction={1}>
+            <CategoryForm category={view === "add" ? undefined : view} onBack={backToList} />
           </Slide>
         ) : (
           <Slide key="list" direction={-1}>
             <div className="space-y-5 px-5 pb-5">
-              <CategoryList categories={activeCategories} photoCounts={photoCounts} />
+              <CategoryList
+                categories={activeCategories}
+                photoCounts={photoCounts}
+                onEdit={setView}
+              />
               {archivedCategories.length > 0 && (
                 <div className="space-y-2">
                   <span className="text-ink-3 text-[11.5px] font-semibold tracking-wide uppercase">
                     Archived
                   </span>
-                  <CategoryList categories={archivedCategories} photoCounts={photoCounts} />
+                  <CategoryList
+                    categories={archivedCategories}
+                    photoCounts={photoCounts}
+                    onEdit={setView}
+                  />
                 </div>
               )}
             </div>
 
             <footer className="flex justify-end gap-2 border-t border-black/[0.05] px-5 py-3.5">
               <ModalButton onClick={onClose}>Done</ModalButton>
-              <ModalButton onClick={() => setIsAdding(true)} primary>
+              <ModalButton onClick={() => setView("add")} primary>
                 <Plus className="size-4" />
                 New category
               </ModalButton>
@@ -75,9 +86,13 @@ function Slide({ direction, children }: { direction: number; children: ReactNode
   );
 }
 
-type CategoryListProps = { categories: Category[]; photoCounts: Map<string, number> };
+type CategoryListProps = {
+  categories: Category[];
+  photoCounts: Map<string, number>;
+  onEdit: (category: Category) => void;
+};
 
-function CategoryList({ categories, photoCounts }: CategoryListProps) {
+function CategoryList({ categories, photoCounts, onEdit }: CategoryListProps) {
   const { categoryColor } = useCategories();
   return (
     <ul className="divide-y divide-black/[0.05] overflow-hidden rounded-2xl ring-1 ring-black/[0.05]">
@@ -97,6 +112,14 @@ function CategoryList({ categories, photoCounts }: CategoryListProps) {
           <span className="text-ink-2 shrink-0 text-[12px] tabular-nums">
             {formatNumber(photoCounts.get(category.id) ?? 0)}
           </span>
+          <button
+            onClick={() => onEdit(category)}
+            aria-label={`Edit ${category.label}`}
+            title="Edit"
+            className="text-ink-2 hover:text-ink grid size-8 shrink-0 place-items-center rounded-full bg-black/[0.04] transition hover:bg-black/[0.08]"
+          >
+            <Pencil className="size-3.5" />
+          </button>
           <ArchiveButton category={category} />
         </li>
       ))}
@@ -131,22 +154,24 @@ function ArchiveButton({ category }: { category: Category }) {
   );
 }
 
-function AddCategory({ onBack }: { onBack: () => void }) {
+function CategoryForm({ category, onBack }: { category?: Category; onBack: () => void }) {
   const queryClient = useQueryClient();
-  const [label, setLabel] = useState("");
-  const [description, setDescription] = useState("");
-  const [searchTerms, setSearchTerms] = useState("");
+  const [label, setLabel] = useState(category?.label ?? "");
+  const [description, setDescription] = useState(category?.description ?? "");
+  const [searchTerms, setSearchTerms] = useState(category?.subjects.join(", ") ?? "");
 
   const addCategory = useMutation({
-    mutationFn: () =>
-      api.addCategory({
+    mutationFn: () => {
+      const text = {
         label,
         description,
         subjects: searchTerms.split(",").map((term) => term.trim()),
-      }),
-    onSuccess: (category) => {
+      };
+      return category ? api.editCategory(category.id, text) : api.addCategory(text);
+    },
+    onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
-      toast.success(`Added ${category.label}`);
+      toast.success(category ? `Saved ${saved.label}` : `Added ${saved.label}`);
       onBack();
     },
     onError: (error) => toast.error(error.message),
@@ -198,7 +223,7 @@ function AddCategory({ onBack }: { onBack: () => void }) {
           primary
         >
           {addCategory.isPending && <LoaderCircle className="size-4 animate-spin" />}
-          Add category
+          {category ? "Save" : "Add category"}
         </ModalButton>
       </footer>
     </>

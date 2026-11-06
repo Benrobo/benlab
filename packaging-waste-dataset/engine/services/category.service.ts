@@ -7,7 +7,34 @@ const logger = createLogger("categories");
 
 const categoriesKey = redisKey("categories");
 
-type NewCategory = { label: string; description: string; subjects?: string[] };
+type CategoryText = { label: string; description: string; subjects?: string[] };
+
+const limits = { label: 40, description: 200, subject: 60, subjects: 8 };
+
+const unsafeCharacters = /https?:|www\.|[<>{}`\[\]\\|]|\n|\r/i;
+
+function findProblem({ label, description, subjects = [] }: CategoryText) {
+  const texts = [label, description, ...subjects];
+  if (label.trim().length < 2 || label.length > limits.label) {
+    return `The name must be 2 to ${limits.label} characters`;
+  }
+  if (description.trim().length < 5 || description.length > limits.description) {
+    return `The description must be 5 to ${limits.description} characters`;
+  }
+  if (
+    subjects.length > limits.subjects ||
+    subjects.some((subject) => subject.length > limits.subject)
+  ) {
+    return `Use up to ${limits.subjects} search terms of up to ${limits.subject} characters`;
+  }
+  if (texts.some((text) => unsafeCharacters.test(text))) {
+    return "Links, markup and line breaks aren't allowed";
+  }
+  return null;
+}
+
+const cleanSubjects = (subjects: string[] = []) =>
+  subjects.map((subject) => subject.trim()).filter(Boolean);
 
 class CategoryService {
   private categories: Category[] = [];
@@ -44,6 +71,29 @@ class CategoryService {
     return Boolean(this.find(id) && !this.find(id)!.archived);
   }
 
+  async edit(id: string, changes: Partial<CategoryText>) {
+    const category = this.find(id);
+    if (!category) return { problem: "No such category" };
+
+    const edited = {
+      label: changes.label?.trim() ?? category.label,
+      description: changes.description?.trim() ?? category.description,
+      subjects: cleanSubjects(changes.subjects).length
+        ? cleanSubjects(changes.subjects)
+        : category.subjects,
+    };
+    const problem = findProblem(edited);
+    if (problem) {
+      logger.warn(`Rejected edit to ${id}: ${problem}`);
+      return { problem };
+    }
+
+    Object.assign(category, edited);
+    await this.save(category);
+    logger.info(`Edited category ${id}`);
+    return { category };
+  }
+
   async setArchived(id: string, archived: boolean) {
     const category = this.find(id);
     if (!category) return null;
@@ -53,7 +103,14 @@ class CategoryService {
     return category;
   }
 
-  async add({ label, description, subjects = [] }: NewCategory) {
+  async add({ label, description, subjects = [] }: CategoryText) {
+    const searchTerms = cleanSubjects(subjects);
+    const problem = findProblem({ label, description, subjects: searchTerms });
+    if (problem) {
+      logger.warn(`Rejected new category "${label}": ${problem}`);
+      return { problem };
+    }
+
     const id = label
       .toLowerCase()
       .trim()
@@ -62,7 +119,6 @@ class CategoryService {
     if (!id) return { problem: "Give the category a name" };
     if (this.find(id)) return { problem: `${label} already exists` };
 
-    const searchTerms = subjects.map((subject) => subject.trim()).filter(Boolean);
     const category: Category = {
       id,
       label: label.trim(),
