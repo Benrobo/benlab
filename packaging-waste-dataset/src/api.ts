@@ -1,5 +1,5 @@
 import type { Category } from "../config";
-import type { CollectionStatus, PhotoWithUrl, UploadResult } from "../engine/types/dataset.types";
+import type { PhotoWithUrl, UploadResult } from "../engine/types/dataset.types";
 
 const uploadSize = 1280;
 
@@ -41,13 +41,9 @@ export const api = {
   getPhotos: () => fetch("/api/photos").then(readJson<PhotoWithUrl[]>),
   removePhoto: (id: string) =>
     fetch(`/api/photos/${id}`, { method: "DELETE" }).then(readJson<{ removed: boolean }>),
-  getCollection: () => fetch("/api/collection").then(readJson<CollectionStatus>),
-  startCollecting: () =>
-    fetch("/api/collection", { method: "POST" }).then(readJson<CollectionStatus>),
-  stopCollecting: () =>
-    fetch("/api/collection", { method: "DELETE" }).then(readJson<CollectionStatus>),
-  uploadPhotos: async (files: File[]) => {
+  uploadPhotos: async (files: File[], category: string) => {
     const form = new FormData();
+    form.append("category", category);
     for (const file of await Promise.all(files.map(shrinkPhoto))) form.append("files", file);
     return fetch("/api/uploads", { method: "POST", body: form }).then(readJson<UploadResult[]>);
   },

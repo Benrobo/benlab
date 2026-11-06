@@ -23,12 +23,6 @@ export function App() {
     queryFn: api.getPhotos,
     refetchInterval: 3000,
   });
-  const collectionQuery = useQuery({
-    queryKey: ["collection"],
-    queryFn: api.getCollection,
-    refetchInterval: 1500,
-    retry: false,
-  });
 
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
@@ -36,7 +30,7 @@ export function App() {
   const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
   const [uploadSheet, setUploadSheet] = useState<{ id: number; files: File[] } | null>(null);
 
-  const engineOnline = collectionQuery.isSuccess;
+  const engineOnline = photosQuery.isSuccess;
   const openUploadSheet = useCallback(
     (files: File[] = []) => setUploadSheet({ id: Date.now(), files }),
     []
@@ -139,7 +133,7 @@ export function App() {
       </main>
 
       <ControlBar
-        collection={collectionQuery.data}
+        engineOnline={engineOnline}
         photoCounts={photoCounts}
         selectedCategory={selectedCategory}
         canDownload={visiblePhotos.length > 0}
@@ -151,6 +145,7 @@ export function App() {
           <UploadSheet
             key={uploadSheet.id}
             initialFiles={uploadSheet.files}
+            initialCategory={selectedCategory === "all" ? "" : selectedCategory}
             onClose={() => setUploadSheet(null)}
           />
         )}

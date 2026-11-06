@@ -1,11 +1,9 @@
 import dayjs from "dayjs";
 import { downloadZip } from "client-zip";
-import { cachedImagePath } from "../config/paths";
 import { deleteFile, getFile, getPublicUrl, uploadFile } from "../config/r2";
 import { redis, redisKey } from "../config/redis";
 import type { Photo, PhotoWithUrl } from "../types/dataset.types";
 import { imageService } from "./image.service";
-import { reviewService } from "./review.service";
 import { createLogger } from "../lib/logger";
 
 const logger = createLogger("dataset");
@@ -78,10 +76,6 @@ class DatasetService {
     await redis.hdel(photosKey, id);
     this.photos = this.photos.filter((saved) => saved.id !== id);
     await deleteFile(this.imageKey(photo));
-    await reviewService.record(
-      { id, searchedFor: photo.category, result: "removed", url: photo.url },
-      cachedImagePath(id)
-    );
     logger.info(`Removed ${id} from ${photo.category}`);
     return true;
   }

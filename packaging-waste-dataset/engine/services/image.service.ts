@@ -1,6 +1,10 @@
 import sharp from "sharp";
 import { cachedImagePath } from "../config/paths";
-import { userAgent, type SearchResult } from "./search.service";
+
+export type ImageSource = { url: string; page?: string };
+
+const userAgent =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
 
 const minimumSide = 320;
 const maximumDownloadBytes = 25_000_000;
@@ -14,11 +18,11 @@ class ImageService {
     return Bun.hash(value).toString(16).padStart(16, "0");
   }
 
-  async getImage(searchResult: SearchResult, id: string, signal: AbortSignal) {
+  async getImage(source: ImageSource, id: string, signal: AbortSignal) {
     const cached = Bun.file(cachedImagePath(id));
     if (await cached.exists()) return Buffer.from(await cached.arrayBuffer());
 
-    const image = await this.download(searchResult, signal).catch(() => null);
+    const image = await this.download(source, signal).catch(() => null);
     if (image) await Bun.write(cached, image);
     return image;
   }
@@ -59,7 +63,7 @@ class ImageService {
     );
   }
 
-  private async download({ url, page }: SearchResult, signal: AbortSignal) {
+  private async download({ url, page }: ImageSource, signal: AbortSignal) {
     const response = await fetch(url, {
       headers: {
         "user-agent": userAgent,

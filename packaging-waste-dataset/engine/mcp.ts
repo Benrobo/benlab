@@ -1,8 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
-import { places } from "../config";
-import { classificationPrompt } from "./services/ai/classifier.service";
+import { photoRules, places } from "../config";
 import { agentService } from "./services/agent.service";
 import { categoryService } from "./services/category.service";
 import { datasetService } from "./services/dataset.service";
@@ -14,12 +13,13 @@ const createGuidelines = () => {
     .join(", ");
   return `# Packaging waste dataset
 
-You are collecting photos of packaging waste in Nigeria for a data annotation dataset. There is no limit, so add as many good photos as you can find for each of the ${categories.length} categories, starting with the ones that have the fewest. You are the judge: find photos on the internet with your own search tools, look at each one with your own vision, and only add photos that follow every rule. Nothing checks your choices after you add them, so be strict.
+You are collecting photos of packaging waste in Nigeria for a data annotation dataset. There is no limit, so add as many good photos as you can find for each of the ${categories.length} categories, starting with the ones that have the fewest. Nothing else checks the photos, so you are the judge: find photos on the internet with your own search tools, look at each one with your own vision, and only add photos that follow every rule. Be strict.
 
-## How to judge a photo
-Judge every photo exactly the way our own classifier does. This is its prompt:
+## Categories
+${categories.map(({ id, description }) => `- ${id}: ${description}`).join("\n")}
 
-${classificationPrompt()}
+## Rules every photo must follow
+${photoRules.map((rule) => `- ${rule}`).join("\n")}
 
 ## How to work
 1. Call get_progress to see how many photos each category has.

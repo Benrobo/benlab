@@ -81,7 +81,7 @@ export function ConnectSheet({ onClose }: { onClose: () => void }) {
       <div className="space-y-4 px-5 pb-5">
         <p className="text-ink-2 text-[12.5px] leading-relaxed">
           The agent searches the web, looks at each photo itself and adds the ones that follow the
-          same rules our classifier uses.
+          dataset rules.
         </p>
 
         <nav className="flex gap-0.5 rounded-full bg-black/[0.04] p-[3px]">

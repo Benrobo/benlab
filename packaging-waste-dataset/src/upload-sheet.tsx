@@ -10,7 +10,7 @@ import { Sheet, SheetButton } from "./sheet";
 const rejectionMessages: Record<string, string> = {
   duplicate: "Already in the dataset",
   "too-large": "Larger than 5 MB",
-  "daily-limit": "Daily check limit reached, try again tomorrow",
+  "unknown-category": "Pick a category first",
   unreadable: "Couldn't read this photo",
 };
 
@@ -50,15 +50,16 @@ function createUpload(file: File): Upload {
 
 const onlyImages = (files: File[]) => files.filter((file) => file.type.startsWith("image/"));
 
-type UploadSheetProps = { initialFiles: File[]; onClose: () => void };
+type UploadSheetProps = { initialFiles: File[]; initialCategory: string; onClose: () => void };
 
-export function UploadSheet({ initialFiles, onClose }: UploadSheetProps) {
+export function UploadSheet({ initialFiles, initialCategory, onClose }: UploadSheetProps) {
   const { categoryLabel } = useCategories();
   const queryClient = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploads, setUploads] = useState<Upload[]>(() =>
     onlyImages(initialFiles).slice(0, uploadLimit.files).map(createUpload)
   );
+  const [category, setCategory] = useState(initialCategory);
   const [isChecking, setIsChecking] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
 
@@ -114,7 +115,10 @@ export function UploadSheet({ initialFiles, onClose }: UploadSheetProps) {
 
     let failure = "The engine didn't respond";
     const results = await api
-      .uploadPhotos(readyUploads.map((upload) => upload.file))
+      .uploadPhotos(
+        readyUploads.map((upload) => upload.file),
+        category
+      )
       .catch((error: Error) => {
         failure = error.message;
         return null;
@@ -148,8 +152,8 @@ export function UploadSheet({ initialFiles, onClose }: UploadSheetProps) {
 
   const subtitle = {
     choose: `Up to ${uploadLimit.files} photos, ${maxMegabytes} MB each`,
-    review: `${readyUploads.length} ready to check`,
-    checking: "Checking your photos",
+    review: `${readyUploads.length} ready, pick what they show`,
+    checking: "Adding your photos",
     finished: `${acceptedCount} of ${uploads.length} added`,
   }[step];
 
@@ -163,6 +167,10 @@ export function UploadSheet({ initialFiles, onClose }: UploadSheetProps) {
     >
       <div className="px-5">
         {step === "choose" && <ChooseStep onBrowse={() => fileInput.current?.click()} />}
+
+        {(step === "review" || step === "checking") && (
+          <CategoryPicker value={category} onChange={setCategory} disabled={isChecking} />
+        )}
 
         {(step === "review" || step === "checking") && (
           <div className="grid grid-cols-5 gap-2 pb-5">
@@ -211,13 +219,13 @@ export function UploadSheet({ initialFiles, onClose }: UploadSheetProps) {
               </SheetButton>
               <SheetButton
                 onClick={checkUploads}
-                disabled={isChecking || !readyUploads.length}
+                disabled={isChecking || !readyUploads.length || !category}
                 primary
               >
                 {isChecking && <LoaderCircle className="size-4 animate-spin" />}
                 {isChecking
-                  ? "Checking"
-                  : `Check ${readyUploads.length} ${readyUploads.length === 1 ? "photo" : "photos"}`}
+                  ? "Adding"
+                  : `Add ${readyUploads.length} ${readyUploads.length === 1 ? "photo" : "photos"}`}
               </SheetButton>
             </>
           )}
@@ -239,8 +247,32 @@ export function UploadSheet({ initialFiles, onClose }: UploadSheetProps) {
   );
 }
 
-function ChooseStep({ onBrowse }: { onBrowse: () => void }) {
+type CategoryPickerProps = {
+  value: string;
+  onChange: (category: string) => void;
+  disabled: boolean;
+};
+
+function CategoryPicker({ value, onChange, disabled }: CategoryPickerProps) {
   const { categories, categoryColor } = useCategories();
+  return (
+    <div className="flex flex-wrap gap-1.5 pb-4">
+      {categories.map(({ id, label }) => (
+        <button
+          key={id}
+          onClick={() => onChange(id)}
+          disabled={disabled}
+          className={`flex h-8 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium transition disabled:opacity-60 ${value === id ? "bg-ink text-white" : "text-ink-2 hover:text-ink bg-black/[0.04] hover:bg-black/[0.07]"}`}
+        >
+          <span className="size-1.5 rounded-full" style={{ background: categoryColor(id) }} />
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ChooseStep({ onBrowse }: { onBrowse: () => void }) {
   return (
     <>
       <button
@@ -254,19 +286,7 @@ function ChooseStep({ onBrowse }: { onBrowse: () => void }) {
         <span className="text-ink-3 text-[12px]">JPG, PNG or WebP</span>
       </button>
 
-      <div className="mt-5 flex flex-wrap gap-1.5">
-        {categories.map(({ id, label }) => (
-          <span
-            key={id}
-            className="text-ink-2 flex items-center gap-1.5 rounded-full bg-black/[0.04] px-2.5 py-1 text-[12px] font-medium"
-          >
-            <span className="size-1.5 rounded-full" style={{ background: categoryColor(id) }} />
-            {label}
-          </span>
-        ))}
-      </div>
-
-      <ul className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 pb-5">
+      <ul className="mt-5 grid grid-cols-2 gap-x-3 gap-y-2 pb-5">
         {photoTips.map(({ icon: Icon, text }) => (
           <li key={text} className="text-ink-2 flex items-center gap-2 text-[12.5px]">
             <Icon className="text-ink-3 size-3.5 shrink-0" />

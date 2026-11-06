@@ -2,9 +2,7 @@ import { uploadLimit } from "../config";
 import env from "./config/env";
 import { handleMcpRequest } from "./mcp";
 import { categoryService } from "./services/category.service";
-import { collectionService } from "./services/collection.service";
 import { datasetService } from "./services/dataset.service";
-import { reviewService } from "./services/review.service";
 import { uploadService } from "./services/upload.service";
 import { createLogger } from "./lib/logger";
 
@@ -17,7 +15,7 @@ const mcpRoute = {
 };
 
 export async function startEngine() {
-  await Promise.all([categoryService.load(), datasetService.load(), reviewService.load()]);
+  await Promise.all([categoryService.load(), datasetService.load()]);
 
   Bun.serve({
     port: env.PORT,
@@ -56,29 +54,20 @@ export async function startEngine() {
         },
       },
 
-      "/api/collection": {
-        GET: () => Response.json(collectionService.status()),
-        POST: () => {
-          collectionService.start();
-          return Response.json(collectionService.status());
-        },
-        DELETE: () => {
-          collectionService.stop();
-          return Response.json(collectionService.status());
-        },
-      },
-
       "/api/uploads": {
         POST: async (request) => {
           const form = await request.formData();
           const files = form.getAll("files").filter((file): file is File => file instanceof File);
+          const category = String(form.get("category") ?? "");
           if (!files.length || files.length > uploadLimit.files) {
             return Response.json(
               { error: `Send between 1 and ${uploadLimit.files} photos` },
               { status: 400 }
             );
           }
-          return Response.json(await Promise.all(files.map((file) => uploadService.upload(file))));
+          return Response.json(
+            await Promise.all(files.map((file) => uploadService.upload(file, category)))
+          );
         },
       },
 

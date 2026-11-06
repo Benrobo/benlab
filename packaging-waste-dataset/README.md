@@ -14,12 +14,13 @@ Live at https://packaging-waste-dataset.benlab.space
 
 ## How it works
 
-- **Collection**: each category runs as its own background job (`engine/jobs`). A job searches Bing and Brave images, downloads each result and skips duplicates, then asks a vision model on OpenRouter to classify it. Accepted photos are saved to R2.
-- **Uploads**: you upload 1–5 photos (max 5 MB each) from the UI. The browser shrinks them first. Each photo goes to `tmp/` in R2 while it's classified, then it's moved to `images/<category>/` or deleted. Collection pauses while uploads are being checked.
-- **Classification**: `engine/services/ai/classifier.service.ts` returns `{ category, confidence, reason }`. Photos with a category and confidence of at least 0.7 are kept. The model is set in `engine/services/ai/models.ts`.
-- **Storage**: Redis holds the categories, the photo list and the daily AI check count. Images live in the R2 bucket `packaging-waste-dataset` under `images/<category>/<id>.jpg`.
-- **Categories**: the `+` button next to the tabs (or the `add_category` MCP tool) adds a category with a name, a description the classifier judges by, and search terms. The three defaults in `config.ts` are saved to Redis on first start.
-- **Review**: every photo the collector checks locally is linked into `review/<model>/<category>/<result>/` and logged in `review/log.jsonl`, for checking what the classifier accepts and rejects.
+There is no AI in the system. Photos come from two places, and whoever adds a photo labels it:
+
+- **Uploads**: people upload 1–5 photos (max 5 MB each) from the UI and pick the category they show. The browser shrinks them first, and the engine rejects unreadable photos and duplicates.
+- **AI agents (MCP)**: agents like Claude or ChatGPT search the web, judge each photo with their own vision against the rules, and add it with a category. See below.
+- **Storage**: Redis holds the categories and the photo list, with keys prefixed `packaging-waste-dataset:`. Images live in the R2 bucket `packaging-waste-dataset` under `images/<category>/<id>.jpg`.
+- **Categories**: the `+` button next to the tabs (or the `add_category` MCP tool) adds a category with a name, a description of what counts, and search terms. The three defaults in `config.ts` are saved to Redis on first start.
+- **Rules**: the photo rules live in `config.ts` (`photoRules`) and are sent to agents in the MCP guidelines.
 
 ## Run locally
 
@@ -36,8 +37,6 @@ The UI runs on http://localhost:5199 and the engine on port 5200.
 
 | Variable               | Purpose                                      |
 | ---------------------- | -------------------------------------------- |
-| `OPENROUTER_API_KEY`   | Classification                               |
-| `BRAVE_SEARCH_API_KEY` | Brave image search (optional)                |
 | `R2_ACCESS_KEY_ID`     | R2 credentials                               |
 | `R2_SECRET_ACCESS_KEY` | R2 credentials                               |
 | `R2_ENDPOINT`          | `https://<account>.r2.cloudflarestorage.com` |
@@ -48,24 +47,21 @@ The UI runs on http://localhost:5199 and the engine on port 5200.
 ## Deploy
 
 - **Engine**: a Dokploy application built from the `Dockerfile` in this folder, at https://packaging-waste-dataset.api.benlab.space. Redis is a separate Dokploy Redis service in the same project.
-- **UI**: `bun run deploy` builds the UI and deploys it as a Cloudflare Worker with static assets. The Worker rate limits `/api/*` per IP and forwards it to the engine at `ENGINE_URL`.
+- **UI**: `bun run deploy` builds the UI and deploys it as a Cloudflare Worker with static assets. The Worker rate limits `/api/*` per IP and forwards it to the engine at `ENGINE_URL`. MCP goes straight to the engine.
 
 ## API
 
-| Method   | Path                         | Purpose                         |
-| -------- | ---------------------------- | ------------------------------- |
-| `GET`    | `/api/photos`                | Kept photos                     |
-| `DELETE` | `/api/photos/:id`            | Remove a photo                  |
-| `GET`    | `/api/collection`            | Collection status per category  |
-| `POST`   | `/api/collection`            | Start collecting                |
-| `DELETE` | `/api/collection`            | Stop collecting                 |
-| `POST`   | `/api/uploads`               | Upload and classify 1–5 photos  |
-| `GET`    | `/api/download?category=all` | Zip of photos with `labels.csv` |
-| `POST`   | `/mcp`                       | MCP server for AI agents        |
+| Method   | Path                         | Purpose                           |
+| -------- | ---------------------------- | --------------------------------- |
+| `GET`    | `/api/photos`                | Kept photos                       |
+| `DELETE` | `/api/photos/:id`            | Remove a photo                    |
+| `POST`   | `/api/uploads`               | Upload 1–5 photos with a category |
+| `GET`    | `/api/download?category=all` | Zip of photos with `labels.csv`   |
+| `POST`   | `/mcp`                       | MCP server for AI agents          |
 
 ## AI agents (MCP)
 
-AI agents like Claude or ChatGPT can collect photos themselves through the MCP server at `https://packaging-waste-dataset.api.benlab.space/mcp`. The agent does the searching and judging with its own vision. It gets the exact prompt our classifier uses, but our classifier never checks what it adds.
+AI agents like Claude or ChatGPT can collect photos themselves through the MCP server at `https://packaging-waste-dataset.api.benlab.space/mcp`. The agent does the searching and judging with its own vision. It gets the dataset rules in the guidelines, and nothing else checks what it adds.
 
 | Tool             | Purpose                                                           |
 | ---------------- | ----------------------------------------------------------------- |
@@ -81,14 +77,12 @@ Connect with just that URL, no token needed. The robot button in the UI shows ho
 ## Structure
 
 ```
-config.ts                 default categories, upload limits, engine URL
+config.ts                 default categories, photo rules, upload limits, engine URL
 engine/
   server.ts               routes
   mcp.ts                  MCP server and tools for AI agents
-  jobs/                   background jobs, one per category
-  services/               collector, upload, dataset, search, image, review
-  services/ai/            classifier and models
-  config/                 env, R2, paths
+  services/               upload, agent, dataset, category, image
+  config/                 env, R2, Redis, paths
 src/                      React UI
 worker/index.ts           Cloudflare Worker: UI, rate limits, proxy to the engine
 ```

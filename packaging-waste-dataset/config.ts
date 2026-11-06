@@ -10,7 +10,17 @@ export const engineUrl = "https://packaging-waste-dataset.api.benlab.space";
 
 export const uploadLimit = { files: 5, bytes: 5 * 1024 * 1024 };
 
-export const aiChecksPerDay = 1000;
+export const photoRules = [
+  "Only the packaging counts, never what it contains.",
+  "The packaging has been opened, emptied or left lying around. It does not need to look dirty or like trash, but it is not sealed and full, held, in use or for sale.",
+  "It is a casual photo a regular person could take, not a professional product shot, an ad or a graphic. A plain or tidy background like a table, desk or floor is fine.",
+  "No person or part of a person is visible.",
+  "At most 4 pieces of the packaging are visible.",
+  "The packaging is the clear main subject. Other things can be around it as long as they don't compete for attention.",
+  "Nothing was added on top of the photo.",
+  "Nothing clearly shows the photo was taken outside Nigeria.",
+  "Judge each rule only by what is clearly visible, and don't reject a photo over doubts it doesn't show.",
+];
 
 export const places = ["", "Nigeria", "Lagos", "Abuja", "nairaland"];
 
