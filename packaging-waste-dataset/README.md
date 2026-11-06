@@ -72,6 +72,8 @@ AI agents like Claude or ChatGPT can collect photos themselves through the MCP s
 | `list_photos`    | Photos already in the dataset                                     |
 | `view_image`     | See an image by URL, base64 or photo id, and check for duplicates |
 | `add_photo`      | Add a photo with its category and a reason                        |
+| `add_category`   | Add a category of packaging waste with search terms               |
+| `edit_category`  | Improve a category's name, description or search terms            |
 
 Connect with just that URL, no token needed. The robot button in the UI shows how to connect Claude, ChatGPT, Claude Code and other MCP clients.
 
