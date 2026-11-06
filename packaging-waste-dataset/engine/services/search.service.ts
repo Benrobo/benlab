@@ -64,15 +64,13 @@ class SearchService {
 
   private async searchBraveForAll(queries: string[], signal: AbortSignal) {
     const lists: SearchResult[][] = [];
-    // if (!env.BRAVE_SEARCH_API_KEY) return lists;
+    if (!env.BRAVE_SEARCH_API_KEY) return lists;
 
-    // for (const query of queries) {
-    //   if (signal.aborted) break;
-    //   lists.push(await this.searchBrave(query, signal).catch((error) => this.failed("Brave", query, error)));
-    //   await Bun.sleep(braveDelayBetweenQueriesMs);
-    // }
-
-    console.log("Disabled Brave search for now, returning empty results.");
+    for (const query of queries) {
+      if (signal.aborted) break;
+      lists.push(await this.searchBrave(query, signal).catch((error) => this.failed("Brave", query, error)));
+      await Bun.sleep(braveDelayBetweenQueriesMs);
+    }
 
     return lists;
   }
