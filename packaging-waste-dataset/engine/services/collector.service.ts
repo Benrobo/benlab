@@ -21,8 +21,6 @@ const blockedTitles =
 
 class CollectorService {
   async collect(category: Category, job: CategoryJob, signal: AbortSignal) {
-    if (datasetService.isCategoryFull(category.id)) return;
-
     const searchResults = await searchService.findPhotos(category, signal);
     const queue = searchResults.filter((searchResult) => this.isWorthChecking(searchResult));
     logger.info(
@@ -31,11 +29,10 @@ class CollectorService {
     const hashesSeenThisRun: string[] = [];
 
     const worker = async () => {
-      while (!signal.aborted && !datasetService.isCategoryFull(category.id) && queue.length) {
+      while (!signal.aborted && queue.length) {
         if (!(await classifierService.hasChecksLeft())) break;
         await uploadService.waitUntilIdle();
         await datasetService.refresh();
-        if (datasetService.isCategoryFull(category.id)) break;
         await this.checkSearchResult(queue.shift()!, category, job, hashesSeenThisRun, signal);
       }
     };
@@ -78,11 +75,7 @@ class CollectorService {
     );
 
     if (!classifierService.isAccepted(check)) return;
-    if (
-      datasetService.isCategoryFull(check.category) ||
-      datasetService.looksLikeSavedPhoto(visualHash)
-    )
-      return;
+    if (datasetService.looksLikeSavedPhoto(visualHash)) return;
 
     await datasetService.add(
       {

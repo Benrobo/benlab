@@ -16,7 +16,7 @@ import { UploadSheet } from "./upload-sheet";
 const formatNumber = new Intl.NumberFormat("en").format;
 
 export function App() {
-  const { categories, categoryColor, goal } = useCategories();
+  const { categories, categoryColor } = useCategories();
   const queryClient = useQueryClient();
   const photosQuery = useQuery({
     queryKey: ["photos"],
@@ -111,16 +111,9 @@ export function App() {
           </nav>
 
           <div className="ml-auto flex items-center gap-3 md:ml-0">
-            <div
-              className="flex items-center gap-2"
-              title={`${formatNumber(photos.length)} of ${formatNumber(goal)}`}
-            >
-              <ProgressRing progress={photos.length / goal} />
-              <span className="text-ink-2 text-[12.5px] tabular-nums">
-                <span className="text-ink font-semibold">{formatNumber(photos.length)}</span> /{" "}
-                {formatNumber(goal)}
-              </span>
-            </div>
+            <span className="text-ink-2 text-[12.5px] tabular-nums">
+              <span className="text-ink font-semibold">{formatNumber(photos.length)}</span> photos
+            </span>
             <button
               onClick={() => setIsConnectOpen(true)}
               aria-label="Connect an AI agent"
@@ -211,25 +204,5 @@ function Logo() {
         ))}
       </span>
     </span>
-  );
-}
-
-function ProgressRing({ progress }: { progress: number }) {
-  const circumference = 2 * Math.PI * 9;
-  return (
-    <svg viewBox="0 0 24 24" className="size-5 -rotate-90">
-      <circle cx="12" cy="12" r="9" fill="none" strokeWidth="3" className="stroke-black/[0.07]" />
-      <circle
-        cx="12"
-        cy="12"
-        r="9"
-        fill="none"
-        strokeWidth="3"
-        strokeLinecap="round"
-        className="stroke-ink transition-[stroke-dashoffset] duration-700"
-        strokeDasharray={circumference}
-        strokeDashoffset={circumference * (1 - Math.min(1, progress))}
-      />
-    </svg>
   );
 }

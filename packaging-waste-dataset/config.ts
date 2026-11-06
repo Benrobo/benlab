@@ -8,8 +8,6 @@ export type Category = {
 
 export const engineUrl = "https://packaging-waste-dataset.api.benlab.space";
 
-export const perCategory = 334;
-
 export const uploadLimit = { files: 5, bytes: 5 * 1024 * 1024 };
 
 export const aiChecksPerDay = 1000;

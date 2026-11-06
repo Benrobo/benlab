@@ -1,4 +1,3 @@
-import { perCategory } from "../../config";
 import { getFile } from "../config/r2";
 import type { Photo } from "../types/dataset.types";
 import { categoryService } from "./category.service";
@@ -27,8 +26,6 @@ class AgentService {
         description,
         label,
         saved,
-        target: perCategory,
-        needed: Math.max(0, perCategory - saved),
       };
     });
   }
@@ -56,9 +53,6 @@ class AgentService {
     if (!categoryService.find(category)) return { added: false, problem: "Unknown category" };
 
     await datasetService.refresh(0);
-    if (datasetService.isCategoryFull(category)) {
-      return { added: false, problem: `${category} already has ${perCategory} photos` };
-    }
     if (source.imageUrl && datasetService.hasPhotoFrom(source.imageUrl)) {
       return { added: false, problem: "This image is already in the dataset" };
     }

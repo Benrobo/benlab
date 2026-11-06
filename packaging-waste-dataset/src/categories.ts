@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { perCategory } from "../config";
 import { api } from "./api";
 
 const categoryColors = [
@@ -30,5 +29,5 @@ export function useCategories() {
     return index < 0 ? "#a3a29d" : categoryColors[index % categoryColors.length]!;
   };
 
-  return { categories, categoryLabel, categoryColor, goal: perCategory * categories.length };
+  return { categories, categoryLabel, categoryColor };
 }

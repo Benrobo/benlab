@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
-import { perCategory, places } from "../config";
+import { places } from "../config";
 import { classificationPrompt } from "./services/ai/classifier.service";
 import { agentService } from "./services/agent.service";
 import { categoryService } from "./services/category.service";
@@ -14,7 +14,7 @@ const createGuidelines = () => {
     .join(", ");
   return `# Packaging waste dataset
 
-You are collecting photos of packaging waste in Nigeria for a data annotation dataset. The goal is ${perCategory} photos for each of the ${categories.length} categories. You are the judge: find photos on the internet with your own search tools, look at each one with your own vision, and only add photos that follow every rule. Nothing checks your choices after you add them, so be strict.
+You are collecting photos of packaging waste in Nigeria for a data annotation dataset. There is no limit, so add as many good photos as you can find for each of the ${categories.length} categories, starting with the ones that have the fewest. You are the judge: find photos on the internet with your own search tools, look at each one with your own vision, and only add photos that follow every rule. Nothing checks your choices after you add them, so be strict.
 
 ## How to judge a photo
 Judge every photo exactly the way our own classifier does. This is its prompt:
@@ -22,7 +22,7 @@ Judge every photo exactly the way our own classifier does. This is its prompt:
 ${classificationPrompt()}
 
 ## How to work
-1. Call get_progress to see which categories still need photos.
+1. Call get_progress to see how many photos each category has.
 2. Search the web for real photos taken in Nigeria, for example ${searchExamples}. Try places like ${places.filter(Boolean).join(", ")}. News articles, blogs, forums and social posts are better sources than stock photo sites, shops or product pages.
 3. Call view_image on a candidate to see it and check it isn't already in the dataset.
 4. Call add_photo with the direct image URL (or base64 data), the category and a short reason. Add the page the image came from as pageUrl when you have it.
